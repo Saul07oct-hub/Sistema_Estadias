@@ -1,0 +1,16 @@
+NVK CONTROL DE CORTES - VERIFICACIÓN DE ENTREGA FUNCIONAL
+
+[OK] Base SQLite incluida.
+[OK] Login real mediante PBKDF2-SHA256.
+[OK] Sesión con token aleatorio en proceso principal Electron.
+[OK] Permisos revalidados en Electron para operaciones sensibles.
+[OK] Dashboard usa consultas reales a SQLite.
+[OK] Captura usa materiales, operadores, unidades y tarifas de SQLite.
+[OK] Bitácora usa viajes reales y vistas de duplicados.
+[OK] Resumen por material usa vw_resumen_material_semana.
+[OK] Sellos y pagos conectados a tablas sellos_recepcion y pagos.
+[OK] Corte semanal conectado a cortes/corte_detalles/semanas.
+[OK] Catálogos conectados a materiales/tarifas/operadores/unidades.
+[OK] electron/main.js y electron/preload.js pasan node --check.
+
+La instalación de dependencias no se ejecutó en el entorno de generación porque no hay acceso al registro npm; ejecutar `npm install` en el Mac de desarrollo.

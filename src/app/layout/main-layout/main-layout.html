@@ -1,0 +1,232 @@
+<div class="app-shell">
+
+  @if (sidebarOpen()) {
+    <button
+      class="mobile-overlay"
+      aria-label="Cerrar menú"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <aside
+    class="sidebar"
+    [class.open]="sidebarOpen()"
+  >
+
+    <div class="brand">
+      <div class="brand-mark">
+        NVK
+      </div>
+
+      <div>
+        <strong>Control de Cortes</strong>
+        <span>Acopio y Reciclaje</span>
+      </div>
+
+      <button
+        class="close-mobile"
+        (click)="closeSidebar()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+
+    <nav class="nav">
+
+      <span class="nav-title">
+        OPERACIÓN
+      </span>
+
+      @if (has('dashboard.ver')) {
+        <a
+          routerLink="/dashboard"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-home"></i>
+          <span>Inicio</span>
+        </a>
+      }
+
+      @if (has('viajes.crear')) {
+        <a
+          routerLink="/viajes/nuevo"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-plus-circle"></i>
+          <span>Capturar viaje</span>
+        </a>
+      }
+
+      @if (has('viajes.ver')) {
+        <a
+          routerLink="/viajes/bitacora"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-list"></i>
+          <span>Bitácora semanal</span>
+        </a>
+      }
+
+      @if (has('resumenes.ver')) {
+        <a
+          routerLink="/resumenes"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-chart-bar"></i>
+          <span>Resúmenes</span>
+        </a>
+      }
+
+
+      @if (
+        has('pagos.registrar') ||
+        has('cortes.ver') ||
+        has('catalogos.ver')
+      ) {
+        <span class="nav-title second">
+          ADMINISTRACIÓN
+        </span>
+      }
+
+      @if (has('pagos.registrar')) {
+        <a
+          routerLink="/pagos"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-wallet"></i>
+          <span>Sellos y pagos</span>
+        </a>
+      }
+
+      @if (has('cortes.ver')) {
+        <a
+          routerLink="/corte"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-calculator"></i>
+          <span>Corte semanal</span>
+        </a>
+      }
+
+      @if (has('catalogos.ver')) {
+        <a
+          routerLink="/catalogos"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-database"></i>
+          <span>Catálogos</span>
+        </a>
+      }
+
+      @if (has('exportaciones.crear')) {
+        <a
+          routerLink="/exportaciones"
+          routerLinkActive="active"
+          (click)="closeSidebar()"
+        >
+          <i class="pi pi-file-export"></i>
+          <span>Exportar reporte</span>
+        </a>
+      }
+
+    </nav>
+
+
+    <div class="sidebar-bottom">
+
+      <button
+        class="sidebar-logout"
+        (click)="logout()"
+      >
+        <i class="pi pi-sign-out"></i>
+        Cerrar sesión
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <main class="main-area">
+
+    <header class="topbar">
+
+      <div class="topbar-left">
+
+        <button
+          class="menu-mobile"
+          (click)="toggleSidebar()"
+        >
+          <i class="pi pi-bars"></i>
+        </button>
+
+        <div class="week-block">
+
+          <span>
+            SEMANA OPERATIVA
+          </span>
+
+          <strong>
+            {{ week()?.etiqueta || 'Cargando…' }}
+          </strong>
+
+        </div>
+
+
+        @if (week()) {
+
+          <span
+            class="status-pill"
+            [class.status-open]="week()?.estado === 'ABIERTA'"
+            [class.status-closed]="week()?.estado === 'CERRADA'"
+          >
+            {{ week()?.estado }}
+          </span>
+
+        }
+
+      </div>
+
+
+      <div class="topbar-right">
+
+        <div class="user-box">
+
+          <div class="avatar">
+            {{ auth.user()?.nombre_completo?.charAt(0) }}
+          </div>
+
+          <div class="user-copy">
+
+            <strong>
+              {{ auth.user()?.nombre_completo }}
+            </strong>
+
+            <span>
+              {{ auth.user()?.rol?.nombre }}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section class="content-area">
+      <router-outlet />
+    </section>
+
+  </main>
+
+</div>
