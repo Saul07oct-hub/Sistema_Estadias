@@ -1,28 +1,474 @@
 <div class="page-shell">
+
   <div class="page-heading">
-    <div><span class="eyebrow"></span><h1>NVK. Control de Cortes</h1><p>Acopio y Reciclaje  || Semana Operativa {{ data()?.week?.etiqueta || 'la semana seleccionada' }}.</p></div>
-    @if (has('viajes.crear')) { <a class="btn btn-primary" routerLink="/viajes/nuevo"><i class="pi pi-plus"></i> Nuevo viaje</a> }
+
+    <div>
+      <span class="eyebrow"></span>
+
+      <h1>NVK. Control de Cortes</h1>
+
+      <p>
+        Acopio y Reciclaje || Semana Operativa
+        {{ data()?.week?.etiqueta || 'la semana seleccionada' }}.
+      </p>
+    </div>
+
+    <div class="heading-actions">
+
+      @if (
+        data()?.week?.estado !== 'ABIERTA' &&
+        has('semanas.reabrir')
+      ) {
+        <button
+          class="btn btn-reopen"
+          type="button"
+          [disabled]="reopening()"
+          (click)="reabrirSemana()"
+        >
+          <i class="pi pi-refresh"></i>
+
+          {{ reopening() ? 'Reabriendo…' : 'Reabrir semana' }}
+        </button>
+      }
+
+      @if (has('viajes.crear')) {
+        <a
+          class="btn btn-primary"
+          routerLink="/viajes/nuevo"
+        >
+          <i class="pi pi-plus"></i>
+          Nuevo viaje
+        </a>
+      }
+
+    </div>
+
   </div>
-  @if (loading()) { <div class="card loading-card">Cargando datos…</div> }
-  @if (error()) { <div class="error-box">{{ error() }}</div> }
-  @if (data()) {
-    <div class="info-strip"><i class="pi pi-info-circle"></i><div><strong></strong><span>Reporte Semanal</span></div></div>
-    <section class="kpi-grid">
-      <article class="kpi-card"><div class="kpi-icon blue"><i class="pi pi-truck"></i></div><div class="kpi-copy"><span>Viajes registrados</span><strong>{{ data().kpis.viajes }}</strong><small>6 tipos de material</small></div></article>
-      <article class="kpi-card"><div class="kpi-icon blue"><i class="pi pi-dollar"></i></div><div class="kpi-copy"><span>Total del corte</span><strong class="money">{{ data().kpis.totalCorte | currency:'MXN':'symbol-narrow':'1.2-2' }}</strong><small>Fletes + servicios</small></div></article>
-      <article class="kpi-card"><div class="kpi-icon blue"><i class="pi pi-wallet"></i></div><div class="kpi-copy"><span>Saldo fletes</span><strong class="money">{{ data().kpis.saldo | currency:'MXN':'symbol-narrow':'1.2-2' }}</strong><small>Pagos capturados</small></div></article>
-      <article class="kpi-card"><div class="kpi-icon amber"><i class="pi pi-file"></i></div><div class="kpi-copy"><span>Sin sello recibido</span><strong>{{ data().kpis.sinSello }}</strong><small>Requieren seguimiento</small></div></article>
-    </section>
-    <section class="dashboard-grid">
-      <article class="card material-card"><div class="section-head"><div><span class="section-kicker">DISTRIBUCIÓN</span><h2>Viajes por material</h2></div><a routerLink="/resumenes" class="text-link">Ver resúmenes →</a></div>
-        <div class="materials">@for(item of data().materials;track item.material){<div class="material-row"><div class="material-meta"><strong>{{ item.material }}</strong><small>{{ item.volumen | number:'1.0-0' }} m³ acumulados</small></div><div class="bar"><span [style.width.%]="(item.viajes / data().kpis.viajes) * 100"></span></div><b>{{ item.viajes }} viajes</b></div>}</div>
-      </article>
-      <article class="card alerts-card"><div class="section-head"><div><span class="section-kicker">VALIDACIONES</span><h2>Alertas del control</h2></div></div>
-        @if(data().alerts.dupFolios.length){<div class="alert danger-soft"><i class="pi pi-exclamation-triangle"></i><div><strong>{{ data().alerts.dupFolios.length }} folios duplicados</strong><span>@for(x of data().alerts.dupFolios;track x.folio){ {{x.folio}} }</span></div></div>}
-        @if(data().alerts.dupRefs.length){<div class="alert warning-soft"><i class="pi pi-copy"></i><div><strong>{{ data().alerts.dupRefs.length }} orden repetida</strong><span>@for(x of data().alerts.dupRefs;track x.referencia){ {{x.referencia}} }</span></div></div>}
-        @if(data().alerts.fiscal){<div class="alert info-soft"><i class="pi pi-percentage"></i><div><strong>Regla fiscal pendiente</strong><span>Los viajes internos requieren confirmación formal.</span></div></div>}
-      </article>
-    </section>
-    <article class="card recent-card"><div class="section-head"><div><span class="section-kicker">MOVIMIENTOS</span><h2>Últimos viajes</h2></div><a routerLink="/viajes/bitacora" class="text-link">Ver bitácora →</a></div><div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Material</th><th>Operador</th><th>Unidad</th><th>Folio</th><th>Orden</th><th class="right">Importe</th></tr></thead><tbody>@for(v of data().recientes;track v.id_viaje){<tr><td>{{v.fecha}}</td><td><b>{{v.material}}</b></td><td>{{v.operador}}</td><td>{{v.unidad}}</td><td>{{v.folio_documento}}</td><td>{{v.referencia_salida}}</td><td class="right money">{{v.importe|currency:'MXN':'symbol-narrow':'1.2-2'}}</td></tr>}</tbody></table></div></article>
+
+
+  @if (loading()) {
+    <div class="card loading-card">
+      Cargando datos…
+    </div>
   }
+
+
+  @if (error()) {
+    <div class="error-box">
+      {{ error() }}
+    </div>
+  }
+
+
+  @if (message()) {
+    <div class="success-box">
+      <i class="pi pi-check-circle"></i>
+      {{ message() }}
+    </div>
+  }
+
+
+  @if (data()) {
+
+    <div class="info-strip">
+
+      <i class="pi pi-info-circle"></i>
+
+      <div>
+        <strong></strong>
+        <span>Reporte Semanal</span>
+      </div>
+
+    </div>
+
+
+    <section class="kpi-grid">
+
+      <article class="kpi-card">
+
+        <div class="kpi-icon blue">
+          <i class="pi pi-truck"></i>
+        </div>
+
+        <div class="kpi-copy">
+
+          <span>Viajes registrados</span>
+
+          <strong>
+            {{ data().kpis.viajes }}
+          </strong>
+
+          <small>
+            6 tipos de material
+          </small>
+
+        </div>
+
+      </article>
+
+
+      <article class="kpi-card">
+
+        <div class="kpi-icon blue">
+          <i class="pi pi-dollar"></i>
+        </div>
+
+        <div class="kpi-copy">
+
+          <span>Total del corte</span>
+
+          <strong class="money">
+            {{
+              data().kpis.totalCorte
+                | currency:'MXN':'symbol-narrow':'1.2-2'
+            }}
+          </strong>
+
+          <small>
+            Fletes + servicios
+          </small>
+
+        </div>
+
+      </article>
+
+
+      <article class="kpi-card">
+
+        <div class="kpi-icon blue">
+          <i class="pi pi-wallet"></i>
+        </div>
+
+        <div class="kpi-copy">
+
+          <span>Saldo fletes</span>
+
+          <strong class="money">
+            {{
+              data().kpis.saldo
+                | currency:'MXN':'symbol-narrow':'1.2-2'
+            }}
+          </strong>
+
+          <small>
+            Pagos capturados
+          </small>
+
+        </div>
+
+      </article>
+
+
+      <article class="kpi-card">
+
+        <div class="kpi-icon amber">
+          <i class="pi pi-file"></i>
+        </div>
+
+        <div class="kpi-copy">
+
+          <span>Sin sello recibido</span>
+
+          <strong>
+            {{ data().kpis.sinSello }}
+          </strong>
+
+          <small>
+            Requieren seguimiento
+          </small>
+
+        </div>
+
+      </article>
+
+    </section>
+
+
+    <section class="dashboard-grid">
+
+      <article class="card material-card">
+
+        <div class="section-head">
+
+          <div>
+
+            <span class="section-kicker">
+              DISTRIBUCIÓN
+            </span>
+
+            <h2>
+              Viajes por material
+            </h2>
+
+          </div>
+
+          <a
+            routerLink="/resumenes"
+            class="text-link"
+          >
+            Ver resúmenes →
+          </a>
+
+        </div>
+
+
+        <div class="materials">
+
+          @for (
+            item of data().materials;
+            track item.material
+          ) {
+
+            <div class="material-row">
+
+              <div class="material-meta">
+
+                <strong>
+                  {{ item.material }}
+                </strong>
+
+                <small>
+                  {{
+                    item.volumen
+                      | number:'1.0-0'
+                  }} m³ acumulados
+                </small>
+
+              </div>
+
+
+              <div class="bar">
+
+                <span
+                  [style.width.%]="
+                    (item.viajes / data().kpis.viajes) * 100
+                  "
+                >
+                </span>
+
+              </div>
+
+
+              <b>
+                {{ item.viajes }} viajes
+              </b>
+
+            </div>
+
+          }
+
+        </div>
+
+      </article>
+
+
+      <article class="card alerts-card">
+
+        <div class="section-head">
+
+          <div>
+
+            <span class="section-kicker">
+              VALIDACIONES
+            </span>
+
+            <h2>
+              Alertas del control
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        @if (data().alerts.dupFolios.length) {
+
+          <div class="alert danger-soft">
+
+            <i class="pi pi-exclamation-triangle"></i>
+
+            <div>
+
+              <strong>
+                {{ data().alerts.dupFolios.length }}
+                folios duplicados
+              </strong>
+
+              <span>
+
+                @for (
+                  x of data().alerts.dupFolios;
+                  track x.folio
+                ) {
+                  {{ x.folio }}
+                }
+
+              </span>
+
+            </div>
+
+          </div>
+
+        }
+
+
+        @if (data().alerts.dupRefs.length) {
+
+          <div class="alert warning-soft">
+
+            <i class="pi pi-copy"></i>
+
+            <div>
+
+              <strong>
+                {{ data().alerts.dupRefs.length }}
+                orden repetida
+              </strong>
+
+              <span>
+
+                @for (
+                  x of data().alerts.dupRefs;
+                  track x.referencia
+                ) {
+                  {{ x.referencia }}
+                }
+
+              </span>
+
+            </div>
+
+          </div>
+
+        }
+
+
+        @if (data().alerts.fiscal) {
+
+          <div class="alert info-soft">
+
+            <i class="pi pi-percentage"></i>
+
+            <div>
+
+              <strong>
+                Regla fiscal pendiente
+              </strong>
+
+              <span>
+                Los viajes internos requieren
+                confirmación formal.
+              </span>
+
+            </div>
+
+          </div>
+
+        }
+
+      </article>
+
+    </section>
+
+
+    <article class="card recent-card">
+
+      <div class="section-head">
+
+        <div>
+
+          <span class="section-kicker">
+            MOVIMIENTOS
+          </span>
+
+          <h2>
+            Últimos viajes
+          </h2>
+
+        </div>
+
+
+        <a
+          routerLink="/viajes/bitacora"
+          class="text-link"
+        >
+          Ver bitácora →
+        </a>
+
+      </div>
+
+
+      <div class="table-scroll">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>Fecha</th>
+              <th>Material</th>
+              <th>Operador</th>
+              <th>Unidad</th>
+              <th>Folio</th>
+              <th>Orden</th>
+              <th class="right">Importe</th>
+            </tr>
+
+          </thead>
+
+
+          <tbody>
+
+            @for (
+              v of data().recientes;
+              track v.id_viaje
+            ) {
+
+              <tr>
+
+                <td>
+                  {{ v.fecha }}
+                </td>
+
+                <td>
+                  <b>{{ v.material }}</b>
+                </td>
+
+                <td>
+                  {{ v.operador }}
+                </td>
+
+                <td>
+                  {{ v.unidad }}
+                </td>
+
+                <td>
+                  {{ v.folio_documento }}
+                </td>
+
+                <td>
+                  {{ v.referencia_salida }}
+                </td>
+
+                <td class="right money">
+                  {{
+                    v.importe
+                      | currency:'MXN':'symbol-narrow':'1.2-2'
+                  }}
+                </td>
+
+              </tr>
+
+            }
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </article>
+
+  }
+
 </div>

@@ -1,1 +1,635 @@
-<div class="page-shell"><div class="page-heading"><div><span class="eyebrow">CONFIGURACIÓN</span><h1>Catálogos</h1><p>Materiales, tarifas, operadores y unidades usados durante la captura.</p></div><span class="admin-badge"><i class="pi pi-shield"></i> Solo administrador</span></div>@if(data()){<section class="card materials"><div class="head"><div><span>MATERIALES</span><h2>Tarifas vigentes</h2></div></div><div class="table-scroll"><table><thead><tr><th>Material</th><th>Tipo</th><th>Volumen</th><th>Documento</th><th>Precio unitario</th><th>Estado</th></tr></thead><tbody>@for(m of data().materials;track m.id_material){<tr><td><b>{{m.nombre}}</b></td><td>{{m.tipo_operacion}}</td><td>{{m.volumen}} m³</td><td>{{m.tipo_documento_default}}</td><td><b>{{m.precio|currency:'MXN':'symbol-narrow':'1.2-2'}}</b></td><td><span class="state" [class.pending]="m.estado_regla_fiscal!=='DEFINIDA'">{{m.estado_regla_fiscal==='DEFINIDA'?'Vigente':'Fiscal pendiente'}}</span></td></tr>}</tbody></table></div></section><div class="bottom-grid"><section class="card list"><div class="head"><div><span>OPERADORES</span><h2>Personal</h2></div><b>{{data().operators.length}}</b></div>@for(o of data().operators;track o.id_operador){<div class="row"><div class="initial">{{o.nombre.charAt(0)}}</div><b>{{o.nombre}}</b><span>Activo</span></div>}</section><section class="card list"><div class="head"><div><span>UNIDADES</span><h2>Vehículos</h2></div><b>{{data().units.length}}</b></div>@for(u of data().units;track u.id_unidad){<div class="row"><div class="initial"><i class="pi pi-truck"></i></div><b>{{u.clave}}</b><span>Activa</span></div>}</section></div>}</div>
+<div class="page-shell">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">CONFIGURACIÓN</span>
+      <h1>Catálogos</h1>
+      <p>
+        Materiales, tarifas, operadores y unidades usados durante la captura.
+      </p>
+    </div>
+
+    <span class="admin-badge">
+      <i class="pi pi-shield"></i>
+      Solo administrador
+    </span>
+  </div>
+
+  <!-- MENSAJES -->
+
+  @if (error()) {
+    <div class="alert alert-error">
+      <i class="pi pi-exclamation-circle"></i>
+      {{ error() }}
+    </div>
+  }
+
+  @if (message()) {
+    <div class="alert alert-success">
+      <i class="pi pi-check-circle"></i>
+      {{ message() }}
+    </div>
+  }
+
+  @if (loading()) {
+
+    <section class="card loading-card">
+      <i class="pi pi-spin pi-spinner"></i>
+      Cargando catálogos...
+    </section>
+
+  } @else if (data()) {
+
+    <!-- ==================================================
+         MATERIALES
+    =================================================== -->
+
+    <section class="card materials">
+
+      <div class="head">
+
+        <div>
+          <span>MATERIALES</span>
+          <h2>Tarifas y configuración</h2>
+        </div>
+
+        @if (canEdit()) {
+          <button
+            class="btn btn-primary"
+            type="button"
+            (click)="nuevoMaterial()"
+          >
+            <i class="pi pi-plus"></i>
+            Nuevo material
+          </button>
+        }
+
+      </div>
+
+      <div class="table-scroll">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Tipo</th>
+              <th>Volumen</th>
+              <th>Documento</th>
+              <th>Precio unitario</th>
+              <th>Fiscal</th>
+              <th>Estado</th>
+
+              @if (canEdit()) {
+                <th class="actions-column">
+                  Acciones
+                </th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+
+            @for (
+              m of data().materials;
+              track m.id_material
+            ) {
+
+              <tr
+                [class.inactive-row]="m.activo !== 1"
+              >
+
+                <td>
+                  <div class="material-name">
+                    <b>{{ m.nombre }}</b>
+
+                    @if (m.codigo) {
+                      <small>
+                        {{ m.codigo }}
+                      </small>
+                    }
+                  </div>
+                </td>
+
+                <td>
+                  {{ m.tipo_operacion }}
+                </td>
+
+                <td>
+                  {{ m.volumen }} m³
+                </td>
+
+                <td>
+                  {{ m.tipo_documento_default }}
+                </td>
+
+                <td>
+                  <b>
+                    {{
+                      m.precio
+                        | currency:'MXN':'symbol-narrow':'1.2-2'
+                    }}
+                  </b>
+                </td>
+
+                <!-- ESTADO FISCAL -->
+
+                <td>
+                  <span
+                    class="state"
+                    [class.pending]="
+                      m.estado_regla_fiscal !== 'DEFINIDA'
+                    "
+                  >
+                    {{
+                      m.estado_regla_fiscal === 'DEFINIDA'
+                        ? 'Vigente'
+                        : 'Fiscal pendiente'
+                    }}
+                  </span>
+                </td>
+
+                <!-- ACTIVO / INACTIVO -->
+
+                <td>
+                  <span
+                    class="status"
+                    [class.status-inactive]="
+                      m.activo !== 1
+                    "
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-check-circle]="
+                        m.activo === 1
+                      "
+                      [class.pi-ban]="
+                        m.activo !== 1
+                      "
+                    ></i>
+
+                    {{
+                      m.activo === 1
+                        ? 'Activo'
+                        : 'Inactivo'
+                    }}
+                  </span>
+                </td>
+
+                <!-- ACCIONES -->
+
+                @if (canEdit()) {
+
+                  <td class="actions">
+
+                    <button
+                      class="icon-btn"
+                      type="button"
+                      title="Editar material"
+                      (click)="editarMaterial(m)"
+                    >
+                      <i class="pi pi-pencil"></i>
+                    </button>
+
+                    <button
+                      class="icon-btn"
+                      [class.activate]="m.activo !== 1"
+                      [class.deactivate]="m.activo === 1"
+                      type="button"
+                      [title]="
+                        m.activo === 1
+                          ? 'Desactivar material'
+                          : 'Activar material'
+                      "
+                      [disabled]="saving()"
+                      (click)="cambiarEstadoMaterial(m)"
+                    >
+                      <i
+                        class="pi"
+                        [class.pi-eye-slash]="
+                          m.activo === 1
+                        "
+                        [class.pi-refresh]="
+                          m.activo !== 1
+                        "
+                      ></i>
+                    </button>
+
+                  </td>
+                }
+
+              </tr>
+            }
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==================================================
+         OPERADORES / UNIDADES
+    =================================================== -->
+
+    <div class="bottom-grid">
+
+      <!-- OPERADORES -->
+
+      <section class="card list">
+
+        <div class="head">
+
+          <div>
+            <span>OPERADORES</span>
+            <h2>Personal</h2>
+          </div>
+
+          <b>
+            {{ data().operators.length }}
+          </b>
+
+        </div>
+
+        @for (
+          o of data().operators;
+          track o.id_operador
+        ) {
+
+          <div
+            class="row"
+            [class.inactive-list-row]="
+              o.activo !== 1
+            "
+          >
+
+            <div class="initial">
+              {{ o.nombre.charAt(0) }}
+            </div>
+
+            <b>
+              {{ o.nombre }}
+            </b>
+
+            <span
+              [class.inactive-badge]="
+                o.activo !== 1
+              "
+            >
+              {{
+                o.activo === 1
+                  ? 'Activo'
+                  : 'Inactivo'
+              }}
+            </span>
+
+          </div>
+        }
+
+      </section>
+
+
+      <!-- UNIDADES -->
+
+      <section class="card list">
+
+        <div class="head">
+
+          <div>
+            <span>UNIDADES</span>
+            <h2>Vehículos</h2>
+          </div>
+
+          <b>
+            {{ data().units.length }}
+          </b>
+
+        </div>
+
+        @for (
+          u of data().units;
+          track u.id_unidad
+        ) {
+
+          <div
+            class="row"
+            [class.inactive-list-row]="
+              u.activo !== 1
+            "
+          >
+
+            <div class="initial">
+              <i class="pi pi-truck"></i>
+            </div>
+
+            <b>
+              {{ u.clave }}
+            </b>
+
+            <span
+              [class.inactive-badge]="
+                u.activo !== 1
+              "
+            >
+              {{
+                u.activo === 1
+                  ? 'Activa'
+                  : 'Inactiva'
+              }}
+            </span>
+
+          </div>
+        }
+
+      </section>
+
+    </div>
+  }
+
+
+  <!-- ====================================================
+       MODAL MATERIAL
+  ===================================================== -->
+
+  @if (materialModalOpen()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarMaterialModal()"
+    >
+
+      <section
+        class="material-modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <!-- CABECERA -->
+
+        <div class="modal-header">
+
+          <div>
+            <span class="eyebrow">
+              MATERIAL
+            </span>
+
+            <h2>
+              {{
+                editingMaterial()
+                  ? 'Editar material'
+                  : 'Nuevo material'
+              }}
+            </h2>
+
+            <p>
+              Configura los datos utilizados
+              durante la captura de viajes.
+            </p>
+          </div>
+
+          <button
+            class="modal-close"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarMaterialModal()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+
+        </div>
+
+
+        <!-- FORMULARIO -->
+
+        <div class="material-form">
+
+          <!-- NOMBRE -->
+
+          <label class="field field-wide">
+
+            <span>
+              Nombre del material
+            </span>
+
+            <input
+              type="text"
+              [value]="materialForm().nombre"
+              (input)="
+                setMaterialField(
+                  'nombre',
+                  $any($event.target).value
+                )
+              "
+              placeholder="Ej. Cerámica"
+            >
+
+          </label>
+
+
+          <!-- CÓDIGO -->
+
+          <label class="field">
+
+            <span>
+              Código
+            </span>
+
+            <input
+              type="text"
+              [value]="materialForm().codigo"
+              (input)="
+                setMaterialField(
+                  'codigo',
+                  $any($event.target).value
+                )
+              "
+              placeholder="Ej. CERAMICA"
+            >
+
+          </label>
+
+
+          <!-- TIPO -->
+
+          <label class="field">
+
+            <span>
+              Tipo
+            </span>
+
+            <select
+              [value]="materialForm().tipo_operacion"
+              (change)="
+                setMaterialField(
+                  'tipo_operacion',
+                  $any($event.target).value
+                )
+              "
+            >
+              <option value="EXTERNO">
+                Externo
+              </option>
+
+              <option value="INTERNO">
+                Interno
+              </option>
+            </select>
+
+          </label>
+
+
+          <!-- VOLUMEN -->
+
+          <label class="field">
+
+            <span>
+              Volumen (m³)
+            </span>
+
+            <input
+              type="number"
+              min="0.001"
+              step="0.001"
+              [value]="materialForm().volumen"
+              (input)="
+                setMaterialField(
+                  'volumen',
+                  $any($event.target).valueAsNumber
+                )
+              "
+            >
+
+          </label>
+
+
+          <!-- PRECIO -->
+
+          <label class="field">
+
+            <span>
+              Precio unitario
+            </span>
+
+            <div class="money-input">
+
+              <span>$</span>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                [value]="materialForm().precio"
+                (input)="
+                  setMaterialField(
+                    'precio',
+                    $any($event.target).valueAsNumber
+                  )
+                "
+              >
+
+            </div>
+
+          </label>
+
+
+          <!-- DOCUMENTO -->
+
+          <label class="field">
+
+            <span>
+              Documento
+            </span>
+
+            <select
+              [value]="
+                materialForm().tipo_documento_default
+              "
+              (change)="
+                setMaterialField(
+                  'tipo_documento_default',
+                  $any($event.target).value
+                )
+              "
+            >
+              <option value="CARTA_PORTE">
+                Carta porte
+              </option>
+
+              <option value="FACTURA">
+                Factura
+              </option>
+            </select>
+
+          </label>
+
+
+          <!-- REFERENCIA -->
+
+          <label class="field">
+
+            <span>
+              Tipo de referencia
+            </span>
+
+            <input
+              type="text"
+              [value]="
+                materialForm().tipo_referencia_default
+              "
+              (input)="
+                setMaterialField(
+                  'tipo_referencia_default',
+                  $any($event.target).value
+                )
+              "
+            >
+
+          </label>
+
+        </div>
+
+
+        <!-- PIE -->
+
+        <div class="modal-footer">
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarMaterialModal()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="saving()"
+            (click)="guardarMaterial()"
+          >
+
+            @if (saving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+              Guardando...
+            } @else {
+              <i class="pi pi-check"></i>
+
+              {{
+                editingMaterial()
+                  ? 'Guardar cambios'
+                  : 'Agregar material'
+              }}
+            }
+
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+  }
+
+</div>
