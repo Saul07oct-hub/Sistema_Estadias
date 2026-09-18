@@ -1,9 +1,16 @@
 <div class="page-shell">
 
+  <!-- ====================================================
+       ENCABEZADO
+  ===================================================== -->
+
   <div class="page-heading">
+
     <div>
       <span class="eyebrow">CONFIGURACIÓN</span>
+
       <h1>Catálogos</h1>
+
       <p>
         Materiales, tarifas, operadores y unidades usados durante la captura.
       </p>
@@ -13,32 +20,49 @@
       <i class="pi pi-shield"></i>
       Solo administrador
     </span>
+
   </div>
 
-  <!-- MENSAJES -->
+
+  <!-- ====================================================
+       MENSAJES
+  ===================================================== -->
 
   @if (error()) {
+
     <div class="alert alert-error">
       <i class="pi pi-exclamation-circle"></i>
       {{ error() }}
     </div>
+
   }
 
   @if (message()) {
+
     <div class="alert alert-success">
       <i class="pi pi-check-circle"></i>
       {{ message() }}
     </div>
+
   }
+
+
+  <!-- ====================================================
+       CARGANDO
+  ===================================================== -->
 
   @if (loading()) {
 
     <section class="card loading-card">
+
       <i class="pi pi-spin pi-spinner"></i>
+
       Cargando catálogos...
+
     </section>
 
   } @else if (data()) {
+
 
     <!-- ==================================================
          MATERIALES
@@ -54,6 +78,7 @@
         </div>
 
         @if (canEdit()) {
+
           <button
             class="btn btn-primary"
             type="button"
@@ -62,31 +87,46 @@
             <i class="pi pi-plus"></i>
             Nuevo material
           </button>
+
         }
 
       </div>
+
 
       <div class="table-scroll">
 
         <table>
 
           <thead>
+
             <tr>
+
               <th>Material</th>
+
               <th>Tipo</th>
+
               <th>Volumen</th>
+
               <th>Documento</th>
+
               <th>Precio unitario</th>
+
               <th>Fiscal</th>
+
               <th>Estado</th>
 
               @if (canEdit()) {
+
                 <th class="actions-column">
                   Acciones
                 </th>
+
               }
+
             </tr>
+
           </thead>
+
 
           <tbody>
 
@@ -99,65 +139,97 @@
                 [class.inactive-row]="m.activo !== 1"
               >
 
+                <!-- MATERIAL -->
+
                 <td>
+
                   <div class="material-name">
-                    <b>{{ m.nombre }}</b>
+
+                    <b>
+                      {{ m.nombre }}
+                    </b>
 
                     @if (m.codigo) {
+
                       <small>
                         {{ m.codigo }}
                       </small>
+
                     }
+
                   </div>
+
                 </td>
+
+
+                <!-- TIPO -->
 
                 <td>
                   {{ m.tipo_operacion }}
                 </td>
 
+
+                <!-- VOLUMEN -->
+
                 <td>
                   {{ m.volumen }} m³
                 </td>
+
+
+                <!-- DOCUMENTO -->
 
                 <td>
                   {{ m.tipo_documento_default }}
                 </td>
 
+
+                <!-- PRECIO -->
+
                 <td>
+
                   <b>
                     {{
                       m.precio
                         | currency:'MXN':'symbol-narrow':'1.2-2'
                     }}
                   </b>
+
                 </td>
+
 
                 <!-- ESTADO FISCAL -->
 
                 <td>
+
                   <span
                     class="state"
                     [class.pending]="
                       m.estado_regla_fiscal !== 'DEFINIDA'
                     "
                   >
+
                     {{
                       m.estado_regla_fiscal === 'DEFINIDA'
                         ? 'Vigente'
                         : 'Fiscal pendiente'
                     }}
+
                   </span>
+
                 </td>
+
 
                 <!-- ACTIVO / INACTIVO -->
 
                 <td>
+
                   <span
                     class="status"
                     [class.status-inactive]="
                       m.activo !== 1
                     "
                   >
+
                     <i
                       class="pi"
                       [class.pi-check-circle]="
@@ -173,8 +245,11 @@
                         ? 'Activo'
                         : 'Inactivo'
                     }}
+
                   </span>
+
                 </td>
+
 
                 <!-- ACCIONES -->
 
@@ -182,28 +257,40 @@
 
                   <td class="actions">
 
+                    <!-- EDITAR -->
+
                     <button
                       class="icon-btn"
                       type="button"
                       title="Editar material"
                       (click)="editarMaterial(m)"
                     >
+
                       <i class="pi pi-pencil"></i>
+
                     </button>
+
+
+                    <!-- ACTIVAR / DESACTIVAR -->
 
                     <button
                       class="icon-btn"
-                      [class.activate]="m.activo !== 1"
-                      [class.deactivate]="m.activo === 1"
+                      [class.activate]="
+                        m.activo !== 1
+                      "
+                      [class.deactivate]="
+                        m.activo === 1
+                      "
                       type="button"
+                      [disabled]="saving()"
                       [title]="
                         m.activo === 1
                           ? 'Desactivar material'
                           : 'Activar material'
                       "
-                      [disabled]="saving()"
                       (click)="cambiarEstadoMaterial(m)"
                     >
+
                       <i
                         class="pi"
                         [class.pi-eye-slash]="
@@ -213,12 +300,15 @@
                           m.activo !== 1
                         "
                       ></i>
+
                     </button>
 
                   </td>
+
                 }
 
               </tr>
+
             }
 
           </tbody>
@@ -236,22 +326,52 @@
 
     <div class="bottom-grid">
 
-      <!-- OPERADORES -->
+
+      <!-- =================================================
+           OPERADORES
+      ================================================== -->
 
       <section class="card list">
 
-        <div class="head">
+        <div class="head catalog-head">
 
           <div>
+
             <span>OPERADORES</span>
+
             <h2>Personal</h2>
+
           </div>
 
-          <b>
-            {{ data().operators.length }}
-          </b>
+
+          <div class="catalog-head-actions">
+
+            <b>
+              {{ data().operators.length }}
+            </b>
+
+
+            @if (canEdit()) {
+
+              <button
+                class="mini-add-btn"
+                type="button"
+                title="Agregar personal"
+                (click)="nuevoOperador()"
+              >
+
+                <i class="pi pi-plus"></i>
+
+                Nuevo
+
+              </button>
+
+            }
+
+          </div>
 
         </div>
+
 
         @for (
           o of data().operators;
@@ -259,54 +379,164 @@
         ) {
 
           <div
-            class="row"
+            class="row catalog-row"
             [class.inactive-list-row]="
               o.activo !== 1
             "
           >
 
+            <!-- INICIAL -->
+
             <div class="initial">
-              {{ o.nombre.charAt(0) }}
+
+              {{
+                o.nombre
+                  ? o.nombre.charAt(0)
+                  : '?'
+              }}
+
             </div>
 
-            <b>
-              {{ o.nombre }}
-            </b>
+
+            <!-- NOMBRE -->
+
+            <div class="catalog-name">
+
+              <b>
+                {{ o.nombre }}
+              </b>
+
+            </div>
+
+
+            <!-- ESTADO -->
 
             <span
+              class="catalog-status"
               [class.inactive-badge]="
                 o.activo !== 1
               "
             >
+
               {{
                 o.activo === 1
                   ? 'Activo'
                   : 'Inactivo'
               }}
+
             </span>
 
+
+            <!-- ACCIONES -->
+
+            @if (canEdit()) {
+
+              <div class="catalog-actions">
+
+
+                <!-- EDITAR -->
+
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="Editar operador"
+                  [disabled]="saving()"
+                  (click)="editarOperador(o)"
+                >
+
+                  <i class="pi pi-pencil"></i>
+
+                </button>
+
+
+                <!-- DESACTIVAR / REACTIVAR -->
+
+                <button
+                  class="icon-btn"
+                  [class.activate]="
+                    o.activo !== 1
+                  "
+                  [class.deactivate]="
+                    o.activo === 1
+                  "
+                  type="button"
+                  [disabled]="saving()"
+                  [title]="
+                    o.activo === 1
+                      ? 'Desactivar operador'
+                      : 'Reactivar operador'
+                  "
+                  (click)="cambiarEstadoOperador(o)"
+                >
+
+                  <i
+                    class="pi"
+                    [class.pi-eye-slash]="
+                      o.activo === 1
+                    "
+                    [class.pi-refresh]="
+                      o.activo !== 1
+                    "
+                  ></i>
+
+                </button>
+
+              </div>
+
+            }
+
           </div>
+
         }
 
       </section>
 
 
-      <!-- UNIDADES -->
+      <!-- =================================================
+           UNIDADES
+      ================================================== -->
 
       <section class="card list">
 
-        <div class="head">
+        <div class="head catalog-head">
 
           <div>
+
             <span>UNIDADES</span>
+
             <h2>Vehículos</h2>
+
           </div>
 
-          <b>
-            {{ data().units.length }}
-          </b>
+
+          <div class="catalog-head-actions">
+
+            <b>
+              {{ data().units.length }}
+            </b>
+
+
+            @if (canEdit()) {
+
+              <button
+                class="mini-add-btn"
+                type="button"
+                title="Agregar unidad"
+                (click)="nuevaUnidad()"
+              >
+
+                <i class="pi pi-plus"></i>
+
+                Nueva
+
+              </button>
+
+            }
+
+          </div>
 
         </div>
+
 
         @for (
           u of data().units;
@@ -314,38 +544,116 @@
         ) {
 
           <div
-            class="row"
+            class="row catalog-row"
             [class.inactive-list-row]="
               u.activo !== 1
             "
           >
 
+            <!-- ICONO -->
+
             <div class="initial">
+
               <i class="pi pi-truck"></i>
+
             </div>
 
-            <b>
-              {{ u.clave }}
-            </b>
+
+            <!-- CLAVE -->
+
+            <div class="catalog-name">
+
+              <b>
+                {{ u.clave }}
+              </b>
+
+            </div>
+
+
+            <!-- ESTADO -->
 
             <span
+              class="catalog-status"
               [class.inactive-badge]="
                 u.activo !== 1
               "
             >
+
               {{
                 u.activo === 1
                   ? 'Activa'
                   : 'Inactiva'
               }}
+
             </span>
 
+
+            <!-- ACCIONES -->
+
+            @if (canEdit()) {
+
+              <div class="catalog-actions">
+
+
+                <!-- EDITAR -->
+
+                <button
+                  class="icon-btn"
+                  type="button"
+                  title="Editar unidad"
+                  [disabled]="saving()"
+                  (click)="editarUnidad(u)"
+                >
+
+                  <i class="pi pi-pencil"></i>
+
+                </button>
+
+
+                <!-- DESACTIVAR / REACTIVAR -->
+
+                <button
+                  class="icon-btn"
+                  [class.activate]="
+                    u.activo !== 1
+                  "
+                  [class.deactivate]="
+                    u.activo === 1
+                  "
+                  type="button"
+                  [disabled]="saving()"
+                  [title]="
+                    u.activo === 1
+                      ? 'Desactivar unidad'
+                      : 'Reactivar unidad'
+                  "
+                  (click)="cambiarEstadoUnidad(u)"
+                >
+
+                  <i
+                    class="pi"
+                    [class.pi-eye-slash]="
+                      u.activo === 1
+                    "
+                    [class.pi-refresh]="
+                      u.activo !== 1
+                    "
+                  ></i>
+
+                </button>
+
+              </div>
+
+            }
+
           </div>
+
         }
 
       </section>
 
     </div>
+
   }
 
 
@@ -370,23 +678,28 @@
         <div class="modal-header">
 
           <div>
+
             <span class="eyebrow">
               MATERIAL
             </span>
 
             <h2>
+
               {{
                 editingMaterial()
                   ? 'Editar material'
                   : 'Nuevo material'
               }}
+
             </h2>
 
             <p>
               Configura los datos utilizados
               durante la captura de viajes.
             </p>
+
           </div>
+
 
           <button
             class="modal-close"
@@ -394,7 +707,9 @@
             [disabled]="saving()"
             (click)="cerrarMaterialModal()"
           >
+
             <i class="pi pi-times"></i>
+
           </button>
 
         </div>
@@ -403,6 +718,7 @@
         <!-- FORMULARIO -->
 
         <div class="material-form">
+
 
           <!-- NOMBRE -->
 
@@ -459,7 +775,9 @@
             </span>
 
             <select
-              [value]="materialForm().tipo_operacion"
+              [value]="
+                materialForm().tipo_operacion
+              "
               (change)="
                 setMaterialField(
                   'tipo_operacion',
@@ -467,6 +785,7 @@
                 )
               "
             >
+
               <option value="EXTERNO">
                 Externo
               </option>
@@ -474,6 +793,7 @@
               <option value="INTERNO">
                 Interno
               </option>
+
             </select>
 
           </label>
@@ -491,7 +811,9 @@
               type="number"
               min="0.001"
               step="0.001"
-              [value]="materialForm().volumen"
+              [value]="
+                materialForm().volumen
+              "
               (input)="
                 setMaterialField(
                   'volumen',
@@ -513,13 +835,17 @@
 
             <div class="money-input">
 
-              <span>$</span>
+              <span>
+                $
+              </span>
 
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                [value]="materialForm().precio"
+                [value]="
+                  materialForm().precio
+                "
                 (input)="
                   setMaterialField(
                     'precio',
@@ -552,6 +878,7 @@
                 )
               "
             >
+
               <option value="CARTA_PORTE">
                 Carta porte
               </option>
@@ -559,31 +886,8 @@
               <option value="FACTURA">
                 Factura
               </option>
+
             </select>
-
-          </label>
-
-
-          <!-- REFERENCIA -->
-
-          <label class="field">
-
-            <span>
-              Tipo de referencia
-            </span>
-
-            <input
-              type="text"
-              [value]="
-                materialForm().tipo_referencia_default
-              "
-              (input)="
-                setMaterialField(
-                  'tipo_referencia_default',
-                  $any($event.target).value
-                )
-              "
-            >
 
           </label>
 
@@ -600,8 +904,11 @@
             [disabled]="saving()"
             (click)="cerrarMaterialModal()"
           >
+
             Cancelar
+
           </button>
+
 
           <button
             class="btn btn-primary"
@@ -611,9 +918,13 @@
           >
 
             @if (saving()) {
+
               <i class="pi pi-spin pi-spinner"></i>
+
               Guardando...
+
             } @else {
+
               <i class="pi pi-check"></i>
 
               {{
@@ -621,6 +932,7 @@
                   ? 'Guardar cambios'
                   : 'Agregar material'
               }}
+
             }
 
           </button>
@@ -630,6 +942,289 @@
       </section>
 
     </div>
+
+  }
+
+
+  <!-- ====================================================
+       MODAL OPERADOR
+  ===================================================== -->
+
+  @if (operatorModalOpen()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarOperatorModal()"
+    >
+
+      <section
+        class="material-modal small-modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <!-- CABECERA -->
+
+        <div class="modal-header">
+
+          <div>
+
+            <span class="eyebrow">
+              OPERADOR
+            </span>
+
+            <h2>
+
+              {{
+                editingOperator()
+                  ? 'Editar personal'
+                  : 'Nuevo personal'
+              }}
+
+            </h2>
+
+            <p>
+              Administra el personal disponible
+              para la captura de viajes.
+            </p>
+
+          </div>
+
+
+          <button
+            class="modal-close"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarOperatorModal()"
+          >
+
+            <i class="pi pi-times"></i>
+
+          </button>
+
+        </div>
+
+
+        <!-- FORMULARIO -->
+
+        <div class="simple-form">
+
+          <label class="field">
+
+            <span>
+              Nombre del operador
+            </span>
+
+            <input
+              type="text"
+              maxlength="100"
+              autocomplete="off"
+              [value]="
+                operatorForm().nombre
+              "
+              (input)="
+                setOperatorField(
+                  'nombre',
+                  $any($event.target).value
+                )
+              "
+              placeholder="Ej. DAVID"
+            >
+
+          </label>
+
+        </div>
+
+
+        <!-- PIE -->
+
+        <div class="modal-footer">
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarOperatorModal()"
+          >
+
+            Cancelar
+
+          </button>
+
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="saving()"
+            (click)="guardarOperador()"
+          >
+
+            @if (saving()) {
+
+              <i class="pi pi-spin pi-spinner"></i>
+
+              Guardando...
+
+            } @else {
+
+              <i class="pi pi-check"></i>
+
+              {{
+                editingOperator()
+                  ? 'Guardar cambios'
+                  : 'Agregar personal'
+              }}
+
+            }
+
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  }
+
+
+  <!-- ====================================================
+       MODAL UNIDAD
+  ===================================================== -->
+
+  @if (unitModalOpen()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarUnitModal()"
+    >
+
+      <section
+        class="material-modal small-modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <!-- CABECERA -->
+
+        <div class="modal-header">
+
+          <div>
+
+            <span class="eyebrow">
+              UNIDAD
+            </span>
+
+            <h2>
+
+              {{
+                editingUnit()
+                  ? 'Editar unidad'
+                  : 'Nueva unidad'
+              }}
+
+            </h2>
+
+            <p>
+              Administra las unidades disponibles
+              para la captura de viajes.
+            </p>
+
+          </div>
+
+
+          <button
+            class="modal-close"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarUnitModal()"
+          >
+
+            <i class="pi pi-times"></i>
+
+          </button>
+
+        </div>
+
+
+        <!-- FORMULARIO -->
+
+        <div class="simple-form">
+
+          <label class="field">
+
+            <span>
+              Clave de la unidad
+            </span>
+
+            <input
+              type="text"
+              maxlength="100"
+              autocomplete="off"
+              [value]="
+                unitForm().clave
+              "
+              (input)="
+                setUnitField(
+                  'clave',
+                  $any($event.target).value
+                )
+              "
+              placeholder="Ej. KENWORTH"
+            >
+
+          </label>
+
+        </div>
+
+
+        <!-- PIE -->
+
+        <div class="modal-footer">
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="saving()"
+            (click)="cerrarUnitModal()"
+          >
+
+            Cancelar
+
+          </button>
+
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="saving()"
+            (click)="guardarUnidad()"
+          >
+
+            @if (saving()) {
+
+              <i class="pi pi-spin pi-spinner"></i>
+
+              Guardando...
+
+            } @else {
+
+              <i class="pi pi-check"></i>
+
+              {{
+                editingUnit()
+                  ? 'Guardar cambios'
+                  : 'Agregar unidad'
+              }}
+
+            }
+
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+
   }
 
 </div>

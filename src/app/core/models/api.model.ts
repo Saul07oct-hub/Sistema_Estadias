@@ -2,14 +2,18 @@ export interface NvkUser {
   id_usuario: number;
   username: string;
   nombre_completo: string;
+
   rol: {
     id_rol: number;
     codigo: string;
     nombre: string;
   };
+
   permisos: string[];
+
   debe_cambiar_password: boolean;
 }
+
 
 export interface LoginResult {
   ok: boolean;
@@ -18,8 +22,11 @@ export interface LoginResult {
   usuario?: NvkUser;
 }
 
+
 declare global {
+
   interface Window {
+
     nvkAPI: {
 
       // =========================
@@ -35,6 +42,7 @@ declare global {
         token: string
       ): Promise<any>;
 
+
       // =========================
       // DASHBOARD
       // =========================
@@ -42,6 +50,7 @@ declare global {
       dashboard(
         token: string
       ): Promise<any>;
+
 
       // =========================
       // VIAJES
@@ -61,6 +70,7 @@ declare global {
         filters?: any
       ): Promise<any>;
 
+
       // =========================
       // RESÚMENES
       // =========================
@@ -69,6 +79,7 @@ declare global {
         token: string,
         idMaterial?: number
       ): Promise<any>;
+
 
       // =========================
       // PAGOS / SELLOS
@@ -88,6 +99,7 @@ declare global {
         idViaje: number
       ): Promise<any>;
 
+
       // =========================
       // CATÁLOGOS
       // =========================
@@ -96,7 +108,10 @@ declare global {
         token: string
       ): Promise<any>;
 
-      // ----- MATERIALES -----
+
+      // =========================
+      // MATERIALES
+      // =========================
 
       crearMaterial(
         token: string,
@@ -115,6 +130,51 @@ declare global {
         activo: number
       ): Promise<any>;
 
+
+      // =========================
+      // OPERADORES
+      // =========================
+
+      crearOperador(
+        token: string,
+        data: any
+      ): Promise<any>;
+
+      editarOperador(
+        token: string,
+        idOperador: number,
+        data: any
+      ): Promise<any>;
+
+      cambiarEstadoOperador(
+        token: string,
+        idOperador: number,
+        activo: number
+      ): Promise<any>;
+
+
+      // =========================
+      // UNIDADES
+      // =========================
+
+      crearUnidad(
+        token: string,
+        data: any
+      ): Promise<any>;
+
+      editarUnidad(
+        token: string,
+        idUnidad: number,
+        data: any
+      ): Promise<any>;
+
+      cambiarEstadoUnidad(
+        token: string,
+        idUnidad: number,
+        activo: number
+      ): Promise<any>;
+
+
       // =========================
       // CORTE SEMANAL
       // =========================
@@ -127,8 +187,12 @@ declare global {
         token: string,
         action: 'reabrir' | 'cerrar'
       ): Promise<any>;
+
     };
+
   }
+
 }
+
 
 export {};

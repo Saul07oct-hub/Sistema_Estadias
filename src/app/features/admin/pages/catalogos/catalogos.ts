@@ -2,6 +2,11 @@ import { CurrencyPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { AuthService } from '../../../../core/services/auth.service';
 
+
+/* =========================================================
+   INTERFACES
+========================================================= */
+
 interface MaterialForm {
   id_material: number | null;
   codigo: string;
@@ -14,6 +19,23 @@ interface MaterialForm {
   activo: number;
 }
 
+interface OperatorForm {
+  id_operador: number | null;
+  nombre: string;
+  activo: number;
+}
+
+interface UnitForm {
+  id_unidad: number | null;
+  clave: string;
+  activo: number;
+}
+
+
+/* =========================================================
+   COMPONENTE
+========================================================= */
+
 @Component({
   selector: 'app-catalogos',
   imports: [CurrencyPipe],
@@ -24,48 +46,101 @@ export class Catalogos implements OnInit {
 
   readonly auth = inject(AuthService);
 
+
+  /* =======================================================
+     ESTADO GENERAL
+  ======================================================= */
+
   readonly data = signal<any>(null);
+
   readonly loading = signal(true);
+
   readonly saving = signal(false);
 
   readonly error = signal('');
+
   readonly message = signal('');
 
+
+  /* =======================================================
+     ESTADO MODAL MATERIAL
+  ======================================================= */
+
   readonly materialModalOpen = signal(false);
+
   readonly editingMaterial = signal(false);
 
   readonly materialForm = signal<MaterialForm>(
     this.emptyMaterial()
   );
 
+
+  /* =======================================================
+     ESTADO MODAL OPERADOR
+  ======================================================= */
+
+  readonly operatorModalOpen = signal(false);
+
+  readonly editingOperator = signal(false);
+
+  readonly operatorForm = signal<OperatorForm>(
+    this.emptyOperator()
+  );
+
+
+  /* =======================================================
+     ESTADO MODAL UNIDAD
+  ======================================================= */
+
+  readonly unitModalOpen = signal(false);
+
+  readonly editingUnit = signal(false);
+
+  readonly unitForm = signal<UnitForm>(
+    this.emptyUnit()
+  );
+
+
+  /* =======================================================
+     INICIO
+  ======================================================= */
+
   async ngOnInit(): Promise<void> {
     await this.reload();
   }
+
 
   /* =======================================================
      CARGAR CATÁLOGOS
   ======================================================= */
 
   async reload(): Promise<void> {
+
     try {
+
       this.loading.set(true);
+
       this.error.set('');
 
-      const response = await window.nvkAPI.catalogos(
-        this.auth.token()
-      );
+      const response =
+        await window.nvkAPI.catalogos(
+          this.auth.token()
+        );
 
       if (!response?.ok) {
+
         this.error.set(
           response?.mensaje ||
           'No se pudieron cargar los catálogos.'
         );
+
         return;
       }
 
       this.data.set(response);
 
     } catch (error) {
+
       console.error(error);
 
       this.error.set(
@@ -73,42 +148,93 @@ export class Catalogos implements OnInit {
       );
 
     } finally {
+
       this.loading.set(false);
+
     }
   }
+
 
   /* =======================================================
      PERMISOS
   ======================================================= */
 
   has(permission: string): boolean {
+
     return this.auth.has(permission);
+
   }
+
 
   canEdit(): boolean {
+
     return this.has('catalogos.editar');
+
   }
 
+
   /* =======================================================
-     FORMULARIO VACÍO
+     FORMULARIOS VACÍOS
   ======================================================= */
 
   private emptyMaterial(): MaterialForm {
+
     return {
+
       id_material: null,
+
       codigo: '',
+
       nombre: '',
+
       tipo_operacion: 'EXTERNO',
+
       volumen: 14,
-      tipo_documento_default: 'CARTA_PORTE',
-      tipo_referencia_default: 'REFERENCIA',
+
+      tipo_documento_default:
+        'CARTA_PORTE',
+
+      tipo_referencia_default:
+        'REFERENCIA',
+
       precio: 0,
+
       activo: 1
+
     };
   }
 
+
+  private emptyOperator(): OperatorForm {
+
+    return {
+
+      id_operador: null,
+
+      nombre: '',
+
+      activo: 1
+
+    };
+  }
+
+
+  private emptyUnit(): UnitForm {
+
+    return {
+
+      id_unidad: null,
+
+      clave: '',
+
+      activo: 1
+
+    };
+  }
+
+
   /* =======================================================
-     NUEVO MATERIAL
+     MATERIAL - NUEVO
   ======================================================= */
 
   nuevoMaterial(): void {
@@ -118,6 +244,7 @@ export class Catalogos implements OnInit {
     }
 
     this.error.set('');
+
     this.message.set('');
 
     this.editingMaterial.set(false);
@@ -127,10 +254,12 @@ export class Catalogos implements OnInit {
     );
 
     this.materialModalOpen.set(true);
+
   }
 
+
   /* =======================================================
-     EDITAR MATERIAL
+     MATERIAL - EDITAR
   ======================================================= */
 
   editarMaterial(material: any): void {
@@ -140,11 +269,13 @@ export class Catalogos implements OnInit {
     }
 
     this.error.set('');
+
     this.message.set('');
 
     this.editingMaterial.set(true);
 
     this.materialForm.set({
+
       id_material:
         Number(material.id_material),
 
@@ -181,13 +312,16 @@ export class Catalogos implements OnInit {
         Number(material.activo) === 0
           ? 0
           : 1
+
     });
 
     this.materialModalOpen.set(true);
+
   }
 
+
   /* =======================================================
-     CERRAR FORMULARIO
+     MATERIAL - CERRAR MODAL
   ======================================================= */
 
   cerrarMaterialModal(): void {
@@ -197,15 +331,18 @@ export class Catalogos implements OnInit {
     }
 
     this.materialModalOpen.set(false);
+
     this.editingMaterial.set(false);
 
     this.materialForm.set(
       this.emptyMaterial()
     );
+
   }
 
+
   /* =======================================================
-     ACTUALIZAR CAMPOS DEL FORMULARIO
+     MATERIAL - ACTUALIZAR CAMPO
   ======================================================= */
 
   setMaterialField(
@@ -213,14 +350,18 @@ export class Catalogos implements OnInit {
     value: any
   ): void {
 
-    this.materialForm.update(current => ({
-      ...current,
-      [field]: value
-    }));
+    this.materialForm.update(
+      current => ({
+        ...current,
+        [field]: value
+      })
+    );
+
   }
 
+
   /* =======================================================
-     GUARDAR MATERIAL
+     MATERIAL - GUARDAR
   ======================================================= */
 
   async guardarMaterial(): Promise<void> {
@@ -232,63 +373,83 @@ export class Catalogos implements OnInit {
       return;
     }
 
+
     const form =
       this.materialForm();
 
+
     const nombre =
       form.nombre.trim();
+
 
     const codigo =
       form.codigo
         .trim()
         .toUpperCase();
 
+
     const volumen =
       Number(form.volumen);
+
 
     const precio =
       Number(form.precio);
 
+
     /* =========================
-       VALIDACIÓN FRONTEND
+       VALIDACIONES
     ========================= */
 
     if (!nombre) {
+
       this.error.set(
         'Escribe el nombre del material.'
       );
+
       return;
     }
 
+
     if (!codigo) {
+
       this.error.set(
         'Escribe el código del material.'
       );
+
       return;
     }
+
 
     if (
       !Number.isFinite(volumen) ||
       volumen <= 0
     ) {
+
       this.error.set(
         'El volumen debe ser mayor a 0.'
       );
+
       return;
     }
+
 
     if (
       !Number.isFinite(precio) ||
       precio < 0
     ) {
+
       this.error.set(
         'El precio unitario no es válido.'
       );
+
       return;
     }
 
+
     const payload = {
+
       codigo,
+
       nombre,
 
       tipo_operacion:
@@ -306,19 +467,21 @@ export class Catalogos implements OnInit {
 
       activo:
         form.activo
+
     };
+
 
     try {
 
       this.saving.set(true);
+
       this.error.set('');
+
       this.message.set('');
+
 
       let response: any;
 
-      /* =========================
-         EDITAR
-      ========================= */
 
       if (
         this.editingMaterial() &&
@@ -332,10 +495,6 @@ export class Catalogos implements OnInit {
             payload
           );
 
-      /* =========================
-         CREAR
-      ========================= */
-
       } else {
 
         response =
@@ -343,25 +502,34 @@ export class Catalogos implements OnInit {
             this.auth.token(),
             payload
           );
+
       }
 
+
       if (!response?.ok) {
+
         this.error.set(
           response?.mensaje ||
           'No se pudo guardar el material.'
         );
+
         return;
       }
 
+
       this.materialModalOpen.set(false);
+
       this.editingMaterial.set(false);
+
 
       this.message.set(
         response?.mensaje ||
         'Material guardado correctamente.'
       );
 
+
       await this.reload();
+
 
     } catch (error) {
 
@@ -372,12 +540,15 @@ export class Catalogos implements OnInit {
       );
 
     } finally {
+
       this.saving.set(false);
+
     }
   }
 
+
   /* =======================================================
-     ACTIVAR / DESACTIVAR
+     MATERIAL - ACTIVAR / DESACTIVAR
   ======================================================= */
 
   async cambiarEstadoMaterial(
@@ -391,19 +562,21 @@ export class Catalogos implements OnInit {
       return;
     }
 
-    const actualmenteActivo =
-      Number(material.activo) === 1;
 
     const nuevoEstado =
-      actualmenteActivo
+      Number(material.activo) === 1
         ? 0
         : 1;
+
 
     try {
 
       this.saving.set(true);
+
       this.error.set('');
+
       this.message.set('');
+
 
       const response =
         await window.nvkAPI.cambiarEstadoMaterial(
@@ -412,13 +585,17 @@ export class Catalogos implements OnInit {
           nuevoEstado
         );
 
+
       if (!response?.ok) {
+
         this.error.set(
           response?.mensaje ||
           'No se pudo cambiar el estado.'
         );
+
         return;
       }
+
 
       this.message.set(
         response?.mensaje ||
@@ -429,7 +606,9 @@ export class Catalogos implements OnInit {
         )
       );
 
+
       await this.reload();
+
 
     } catch (error) {
 
@@ -440,7 +619,655 @@ export class Catalogos implements OnInit {
       );
 
     } finally {
+
       this.saving.set(false);
+
     }
   }
+
+
+  /* =======================================================
+     OPERADOR - NUEVO
+  ======================================================= */
+
+  nuevoOperador(): void {
+
+    if (!this.canEdit()) {
+      return;
+    }
+
+    this.error.set('');
+
+    this.message.set('');
+
+    this.editingOperator.set(false);
+
+    this.operatorForm.set(
+      this.emptyOperator()
+    );
+
+    this.operatorModalOpen.set(true);
+
+  }
+
+
+  /* =======================================================
+     OPERADOR - EDITAR
+  ======================================================= */
+
+  editarOperador(
+    operador: any
+  ): void {
+
+    if (!this.canEdit()) {
+      return;
+    }
+
+
+    this.error.set('');
+
+    this.message.set('');
+
+    this.editingOperator.set(true);
+
+
+    this.operatorForm.set({
+
+      id_operador:
+        Number(operador.id_operador),
+
+      nombre:
+        String(operador.nombre || ''),
+
+      activo:
+        Number(operador.activo) === 0
+          ? 0
+          : 1
+
+    });
+
+
+    this.operatorModalOpen.set(true);
+
+  }
+
+
+  /* =======================================================
+     OPERADOR - CERRAR MODAL
+  ======================================================= */
+
+  cerrarOperatorModal(): void {
+
+    if (this.saving()) {
+      return;
+    }
+
+
+    this.operatorModalOpen.set(false);
+
+    this.editingOperator.set(false);
+
+    this.operatorForm.set(
+      this.emptyOperator()
+    );
+
+  }
+
+
+  /* =======================================================
+     OPERADOR - ACTUALIZAR CAMPO
+  ======================================================= */
+
+  setOperatorField(
+    field: keyof OperatorForm,
+    value: any
+  ): void {
+
+    this.operatorForm.update(
+      current => ({
+        ...current,
+        [field]: value
+      })
+    );
+
+  }
+
+
+  /* =======================================================
+     OPERADOR - GUARDAR
+  ======================================================= */
+
+  async guardarOperador(): Promise<void> {
+
+    if (
+      !this.canEdit() ||
+      this.saving()
+    ) {
+      return;
+    }
+
+
+    const form =
+      this.operatorForm();
+
+
+    const nombre =
+      form.nombre
+        .trim()
+        .toUpperCase();
+
+
+    /* =========================
+       VALIDACIÓN
+    ========================= */
+
+    if (!nombre) {
+
+      this.error.set(
+        'Escribe el nombre del operador.'
+      );
+
+      return;
+    }
+
+
+    const payload = {
+
+      nombre,
+
+      activo:
+        form.activo
+
+    };
+
+
+    try {
+
+      this.saving.set(true);
+
+      this.error.set('');
+
+      this.message.set('');
+
+
+      let response: any;
+
+
+      /* =========================
+         EDITAR
+      ========================= */
+
+      if (
+        this.editingOperator() &&
+        form.id_operador
+      ) {
+
+        response =
+          await window.nvkAPI.editarOperador(
+            this.auth.token(),
+            form.id_operador,
+            payload
+          );
+
+      }
+
+      /* =========================
+         CREAR
+      ========================= */
+
+      else {
+
+        response =
+          await window.nvkAPI.crearOperador(
+            this.auth.token(),
+            payload
+          );
+
+      }
+
+
+      if (!response?.ok) {
+
+        this.error.set(
+          response?.mensaje ||
+          'No se pudo guardar el operador.'
+        );
+
+        return;
+      }
+
+
+      this.operatorModalOpen.set(false);
+
+      this.editingOperator.set(false);
+
+
+      this.message.set(
+        response?.mensaje ||
+        (
+          this.editingOperator()
+            ? 'Operador actualizado correctamente.'
+            : 'Operador agregado correctamente.'
+        )
+      );
+
+
+      await this.reload();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      this.error.set(
+        'Ocurrió un error al guardar el operador.'
+      );
+
+    } finally {
+
+      this.saving.set(false);
+
+    }
+  }
+
+
+  /* =======================================================
+     OPERADOR - ACTIVAR / DESACTIVAR
+  ======================================================= */
+
+  async cambiarEstadoOperador(
+    operador: any
+  ): Promise<void> {
+
+    if (
+      !this.canEdit() ||
+      this.saving()
+    ) {
+      return;
+    }
+
+
+    const nuevoEstado =
+      Number(operador.activo) === 1
+        ? 0
+        : 1;
+
+
+    try {
+
+      this.saving.set(true);
+
+      this.error.set('');
+
+      this.message.set('');
+
+
+      const response =
+        await window.nvkAPI.cambiarEstadoOperador(
+          this.auth.token(),
+          Number(operador.id_operador),
+          nuevoEstado
+        );
+
+
+      if (!response?.ok) {
+
+        this.error.set(
+          response?.mensaje ||
+          'No se pudo cambiar el estado del operador.'
+        );
+
+        return;
+      }
+
+
+      this.message.set(
+        response?.mensaje ||
+        (
+          nuevoEstado === 1
+            ? 'Operador activado.'
+            : 'Operador desactivado.'
+        )
+      );
+
+
+      await this.reload();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      this.error.set(
+        'Ocurrió un error al cambiar el estado del operador.'
+      );
+
+    } finally {
+
+      this.saving.set(false);
+
+    }
+  }
+
+
+  /* =======================================================
+     UNIDAD - NUEVA
+  ======================================================= */
+
+  nuevaUnidad(): void {
+
+    if (!this.canEdit()) {
+      return;
+    }
+
+
+    this.error.set('');
+
+    this.message.set('');
+
+    this.editingUnit.set(false);
+
+    this.unitForm.set(
+      this.emptyUnit()
+    );
+
+    this.unitModalOpen.set(true);
+
+  }
+
+
+  /* =======================================================
+     UNIDAD - EDITAR
+  ======================================================= */
+
+  editarUnidad(
+    unidad: any
+  ): void {
+
+    if (!this.canEdit()) {
+      return;
+    }
+
+
+    this.error.set('');
+
+    this.message.set('');
+
+    this.editingUnit.set(true);
+
+
+    this.unitForm.set({
+
+      id_unidad:
+        Number(unidad.id_unidad),
+
+      clave:
+        String(unidad.clave || ''),
+
+      activo:
+        Number(unidad.activo) === 0
+          ? 0
+          : 1
+
+    });
+
+
+    this.unitModalOpen.set(true);
+
+  }
+
+
+  /* =======================================================
+     UNIDAD - CERRAR MODAL
+  ======================================================= */
+
+  cerrarUnitModal(): void {
+
+    if (this.saving()) {
+      return;
+    }
+
+
+    this.unitModalOpen.set(false);
+
+    this.editingUnit.set(false);
+
+    this.unitForm.set(
+      this.emptyUnit()
+    );
+
+  }
+
+
+  /* =======================================================
+     UNIDAD - ACTUALIZAR CAMPO
+  ======================================================= */
+
+  setUnitField(
+    field: keyof UnitForm,
+    value: any
+  ): void {
+
+    this.unitForm.update(
+      current => ({
+        ...current,
+        [field]: value
+      })
+    );
+
+  }
+
+
+  /* =======================================================
+     UNIDAD - GUARDAR
+  ======================================================= */
+
+  async guardarUnidad(): Promise<void> {
+
+    if (
+      !this.canEdit() ||
+      this.saving()
+    ) {
+      return;
+    }
+
+
+    const form =
+      this.unitForm();
+
+
+    const clave =
+      form.clave
+        .trim()
+        .toUpperCase();
+
+
+    /* =========================
+       VALIDACIÓN
+    ========================= */
+
+    if (!clave) {
+
+      this.error.set(
+        'Escribe la clave de la unidad.'
+      );
+
+      return;
+    }
+
+
+    const payload = {
+
+      clave,
+
+      activo:
+        form.activo
+
+    };
+
+
+    try {
+
+      this.saving.set(true);
+
+      this.error.set('');
+
+      this.message.set('');
+
+
+      let response: any;
+
+
+      /* =========================
+         EDITAR
+      ========================= */
+
+      if (
+        this.editingUnit() &&
+        form.id_unidad
+      ) {
+
+        response =
+          await window.nvkAPI.editarUnidad(
+            this.auth.token(),
+            form.id_unidad,
+            payload
+          );
+
+      }
+
+      /* =========================
+         CREAR
+      ========================= */
+
+      else {
+
+        response =
+          await window.nvkAPI.crearUnidad(
+            this.auth.token(),
+            payload
+          );
+
+      }
+
+
+      if (!response?.ok) {
+
+        this.error.set(
+          response?.mensaje ||
+          'No se pudo guardar la unidad.'
+        );
+
+        return;
+      }
+
+
+      this.unitModalOpen.set(false);
+
+      this.editingUnit.set(false);
+
+
+      this.message.set(
+        response?.mensaje ||
+        'Unidad guardada correctamente.'
+      );
+
+
+      await this.reload();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      this.error.set(
+        'Ocurrió un error al guardar la unidad.'
+      );
+
+    } finally {
+
+      this.saving.set(false);
+
+    }
+  }
+
+
+  /* =======================================================
+     UNIDAD - ACTIVAR / DESACTIVAR
+  ======================================================= */
+
+  async cambiarEstadoUnidad(
+    unidad: any
+  ): Promise<void> {
+
+    if (
+      !this.canEdit() ||
+      this.saving()
+    ) {
+      return;
+    }
+
+
+    const nuevoEstado =
+      Number(unidad.activo) === 1
+        ? 0
+        : 1;
+
+
+    try {
+
+      this.saving.set(true);
+
+      this.error.set('');
+
+      this.message.set('');
+
+
+      const response =
+        await window.nvkAPI.cambiarEstadoUnidad(
+          this.auth.token(),
+          Number(unidad.id_unidad),
+          nuevoEstado
+        );
+
+
+      if (!response?.ok) {
+
+        this.error.set(
+          response?.mensaje ||
+          'No se pudo cambiar el estado de la unidad.'
+        );
+
+        return;
+      }
+
+
+      this.message.set(
+        response?.mensaje ||
+        (
+          nuevoEstado === 1
+            ? 'Unidad activada.'
+            : 'Unidad desactivada.'
+        )
+      );
+
+
+      await this.reload();
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      this.error.set(
+        'Ocurrió un error al cambiar el estado de la unidad.'
+      );
+
+    } finally {
+
+      this.saving.set(false);
+
+    }
+  }
+
 }

@@ -706,3 +706,157 @@ button.btn:disabled {
     width: 100%;
   }
 }
+/* =========================================================
+   CATÁLOGOS - OPERADORES / UNIDADES
+========================================================= */
+
+.catalog-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.catalog-head-actions > b {
+  color: #1f2d38;
+  font-size: 0.85rem;
+}
+
+.mini-add-btn {
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+
+  padding: 0.4rem 0.65rem;
+
+  border: 1px solid #cfe2ed;
+  border-radius: 8px;
+
+  background: #eef7fc;
+  color: #17658e;
+
+  font-family: inherit;
+  font-size: 0.63rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mini-add-btn:hover {
+  background: #e3f2fa;
+  border-color: #afd2e5;
+  transform: translateY(-1px);
+}
+
+.mini-add-btn i {
+  font-size: 0.65rem;
+}
+
+
+/* =========================================================
+   FILAS
+========================================================= */
+
+.catalog-row {
+  grid-template-columns:
+    38px
+    minmax(100px, 1fr)
+    auto
+    auto;
+}
+
+.catalog-name {
+  min-width: 0;
+}
+
+.catalog-name b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #25313c;
+}
+
+.row > .catalog-status {
+  white-space: nowrap;
+}
+
+.catalog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+
+/* =========================================================
+   FILA INACTIVA
+========================================================= */
+
+.inactive-list-row {
+  opacity: 1;
+  background: #fafbfc;
+}
+
+.inactive-list-row .initial,
+.inactive-list-row .catalog-name {
+  opacity: 0.55;
+}
+
+
+/* =========================================================
+   MODALES PEQUEÑOS
+========================================================= */
+
+.small-modal {
+  width: min(500px, 100%);
+}
+
+.simple-form {
+  padding: 1.3rem 1.35rem;
+}
+
+.simple-form .field {
+  width: 100%;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 550px) {
+
+  .catalog-row {
+    grid-template-columns: 38px 1fr auto;
+  }
+
+  .catalog-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .catalog-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .catalog-head {
+    align-items: center;
+  }
+
+  .catalog-head-actions {
+    gap: 0.4rem;
+  }
+
+  .mini-add-btn {
+    padding: 0.4rem 0.5rem;
+  }
+}
