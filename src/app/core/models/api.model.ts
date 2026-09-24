@@ -28,7 +28,75 @@ declare global {
   interface Window {
 
     nvkAPI: {
+      // =========================
+      // PERFIL
+      // =========================
 
+      perfil(
+        token: string
+      ): Promise<any>;
+
+      editarPerfil(
+        token: string,
+        data: {
+          nombre_completo: string;
+          username: string;
+        }
+      ): Promise<any>;
+
+      cambiarPassword(
+        token: string,
+        data: {
+          password_actual: string;
+          password_nueva: string;
+        }
+      ): Promise<any>;
+
+
+      // =========================
+      // ADMINISTRACIÓN DE USUARIOS
+      // =========================
+
+      usuarios(
+        token: string
+      ): Promise<any>;
+
+      rolesUsuarios(
+        token: string
+      ): Promise<any>;
+
+      crearUsuario(
+        token: string,
+        data: {
+          nombre_completo: string;
+          username: string;
+          password: string;
+          id_rol: number;
+        }
+      ): Promise<any>;
+
+      editarUsuario(
+        token: string,
+        idUsuario: number,
+        data: {
+          nombre_completo: string;
+          username: string;
+          id_rol: number;
+        }
+      ): Promise<any>;
+
+      cambiarEstadoUsuario(
+        token: string,
+        idUsuario: number,
+        activo: number
+      ): Promise<any>;
+
+      restablecerPasswordUsuario(
+        token: string,
+        idUsuario: number,
+        password: string
+      ): Promise<any>;
+      
       // =========================
       // AUTENTICACIÓN
       // =========================

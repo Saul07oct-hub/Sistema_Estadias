@@ -1,0 +1,852 @@
+<div class="profile-page">
+
+  <!-- =========================
+       ENCABEZADO
+  ========================== -->
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">CUENTA</span>
+      <h1>Mi perfil</h1>
+      <p>
+        Administra tu información personal y la seguridad de tu cuenta.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- =========================
+       MENSAJES
+  ========================== -->
+
+  @if (mensaje()) {
+    <div class="alert success">
+      <i class="pi pi-check-circle"></i>
+      <span>{{ mensaje() }}</span>
+    </div>
+  }
+
+  @if (error() && !modalPerfil() && !modalPassword() &&
+       !modalUsuario() && !modalResetPassword()) {
+    <div class="alert error">
+      <i class="pi pi-exclamation-circle"></i>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+
+  <!-- =========================
+       CARGANDO
+  ========================== -->
+
+  @if (loading()) {
+
+    <div class="loading-card">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando perfil...</span>
+    </div>
+
+  } @else if (perfil()) {
+
+
+    <!-- =========================
+         TARJETA PRINCIPAL
+    ========================== -->
+
+    <section class="profile-card">
+
+      <div class="profile-main">
+
+        <div class="profile-avatar">
+          {{ iniciales(perfil()?.nombre_completo) }}
+        </div>
+
+        <div class="profile-copy">
+
+          <div class="profile-name-row">
+            <h2>
+              {{ perfil()?.nombre_completo }}
+            </h2>
+
+            <span
+              class="status"
+              [class.inactive]="perfil()?.activo !== 1"
+            >
+              <span class="status-dot"></span>
+
+              {{
+                perfil()?.activo === 1
+                  ? 'Activo'
+                  : 'Inactivo'
+              }}
+            </span>
+          </div>
+
+          <span class="username">
+            @{{ perfil()?.username }}
+          </span>
+
+          <div class="profile-meta">
+
+            <span class="role">
+              <i class="pi pi-shield"></i>
+              {{ perfil()?.rol_nombre }}
+            </span>
+
+            @if (perfil()?.ultimo_acceso) {
+              <span class="last-access">
+                <i class="pi pi-clock"></i>
+                Último acceso:
+                {{ perfil()?.ultimo_acceso }}
+              </span>
+            }
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="abrirEditarPerfil()"
+      >
+        <i class="pi pi-pencil"></i>
+        Editar perfil
+      </button>
+
+    </section>
+
+
+    <!-- =========================
+         SEGURIDAD
+    ========================== -->
+
+    <div class="section-title">
+      <div>
+        <span>SEGURIDAD</span>
+        <h2>Protección de la cuenta</h2>
+      </div>
+    </div>
+
+
+    <section class="security-card">
+
+      <div class="security-icon">
+        <i class="pi pi-lock"></i>
+      </div>
+
+      <div class="security-copy">
+        <strong>Contraseña</strong>
+        <span>
+          Mantén tu cuenta protegida utilizando una contraseña segura.
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="abrirPassword()"
+      >
+        Cambiar contraseña
+      </button>
+
+    </section>
+
+
+    <!-- =========================
+         ADMINISTRACIÓN
+    ========================== -->
+
+    @if (esAdministrador()) {
+
+      <section class="users-section">
+
+        <div class="section-title users-title">
+
+          <div>
+            <span>ADMINISTRACIÓN</span>
+            <h2>Usuarios del sistema</h2>
+            <p>
+              Administra las cuentas y permisos de acceso a NVK.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="btn primary"
+            (click)="abrirNuevoUsuario()"
+          >
+            <i class="pi pi-plus"></i>
+            Nuevo usuario
+          </button>
+
+        </div>
+
+
+        <div class="users-card">
+
+          @if (usuarios().length === 0) {
+
+            <div class="empty">
+              <i class="pi pi-users"></i>
+              <strong>No hay usuarios</strong>
+              <span>
+                Todavía no existen usuarios para mostrar.
+              </span>
+            </div>
+
+          } @else {
+
+            <div class="table-scroll">
+
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>USUARIO</th>
+                    <th>ROL</th>
+                    <th>ESTADO</th>
+                    <th>ÚLTIMO ACCESO</th>
+                    <th class="actions-head">
+                      ACCIONES
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  @for (
+                    usuario of usuarios();
+                    track usuario.id_usuario
+                  ) {
+
+                    <tr>
+
+                      <td>
+                        <div class="table-user">
+
+                          <div class="mini-avatar">
+                            {{
+                              iniciales(
+                                usuario.nombre_completo
+                              )
+                            }}
+                          </div>
+
+                          <div>
+                            <strong>
+                              {{ usuario.nombre_completo }}
+                            </strong>
+
+                            <span>
+                              @{{ usuario.username }}
+                            </span>
+                          </div>
+
+                        </div>
+                      </td>
+
+
+                      <td>
+                        <span class="role-badge">
+                          {{ usuario.rol_nombre }}
+                        </span>
+                      </td>
+
+
+                      <td>
+                        <span
+                          class="table-status"
+                          [class.disabled]="usuario.activo !== 1"
+                        >
+                          <span></span>
+
+                          {{
+                            usuario.activo === 1
+                              ? 'Activo'
+                              : 'Inactivo'
+                          }}
+                        </span>
+                      </td>
+
+
+                      <td class="muted">
+                        {{
+                          usuario.ultimo_acceso ||
+                          'Sin acceso'
+                        }}
+                      </td>
+
+
+                      <td>
+
+                        <div class="row-actions">
+
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            title="Editar usuario"
+                            (click)="abrirEditarUsuario(usuario)"
+                          >
+                            <i class="pi pi-pencil"></i>
+                          </button>
+
+
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            title="Restablecer contraseña"
+                            (click)="abrirResetPassword(usuario)"
+                          >
+                            <i class="pi pi-key"></i>
+                          </button>
+
+
+                          <button
+                            type="button"
+                            class="icon-btn"
+                            [class.activate]="usuario.activo !== 1"
+                            [class.deactivate]="usuario.activo === 1"
+                            [title]="
+                              usuario.activo === 1
+                                ? 'Desactivar usuario'
+                                : 'Activar usuario'
+                            "
+                            (click)="cambiarEstado(usuario)"
+                          >
+                            <i
+                              class="pi"
+                              [class.pi-user-minus]="usuario.activo === 1"
+                              [class.pi-user-plus]="usuario.activo !== 1"
+                            ></i>
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  }
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          }
+
+        </div>
+
+      </section>
+
+    }
+
+  }
+
+
+  <!-- =====================================================
+       MODAL - EDITAR MI PERFIL
+  ====================================================== -->
+
+  @if (modalPerfil()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarEditarPerfil()"
+    >
+
+      <div
+        class="modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <div class="modal-header">
+
+          <div>
+            <span>CUENTA</span>
+            <h2>Editar perfil</h2>
+          </div>
+
+          <button
+            type="button"
+            class="modal-close"
+            (click)="cerrarEditarPerfil()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+          @if (error()) {
+            <div class="alert error compact">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ error() }}
+            </div>
+          }
+
+
+          <label class="field">
+            <span>Nombre completo</span>
+
+            <input
+              type="text"
+              [(ngModel)]="nombrePerfil"
+              autocomplete="name"
+              placeholder="Nombre completo"
+            />
+          </label>
+
+
+          <label class="field">
+            <span>Nombre de usuario</span>
+
+            <div class="input-prefix">
+              <span>@</span>
+
+              <input
+                type="text"
+                [(ngModel)]="usernamePerfil"
+                autocomplete="username"
+                placeholder="usuario"
+              />
+            </div>
+          </label>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="saving()"
+            (click)="cerrarEditarPerfil()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="saving()"
+            (click)="guardarPerfil()"
+          >
+            @if (saving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-check"></i>
+            }
+
+            Guardar cambios
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+
+  <!-- =====================================================
+       MODAL - CAMBIAR MI CONTRASEÑA
+  ====================================================== -->
+
+  @if (modalPassword()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarPassword()"
+    >
+
+      <div
+        class="modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <div class="modal-header">
+
+          <div>
+            <span>SEGURIDAD</span>
+            <h2>Cambiar contraseña</h2>
+          </div>
+
+          <button
+            type="button"
+            class="modal-close"
+            (click)="cerrarPassword()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+          @if (error()) {
+            <div class="alert error compact">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ error() }}
+            </div>
+          }
+
+
+          <label class="field">
+            <span>Contraseña actual</span>
+
+            <input
+              type="password"
+              [(ngModel)]="passwordActual"
+              autocomplete="current-password"
+              placeholder="Ingresa tu contraseña actual"
+            />
+          </label>
+
+
+          <label class="field">
+            <span>Nueva contraseña</span>
+
+            <input
+              type="password"
+              [(ngModel)]="passwordNueva"
+              autocomplete="new-password"
+              placeholder="Mínimo 8 caracteres"
+            />
+          </label>
+
+
+          <label class="field">
+            <span>Confirmar nueva contraseña</span>
+
+            <input
+              type="password"
+              [(ngModel)]="passwordConfirmar"
+              autocomplete="new-password"
+              placeholder="Repite la nueva contraseña"
+            />
+          </label>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="saving()"
+            (click)="cerrarPassword()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="saving()"
+            (click)="guardarPassword()"
+          >
+            @if (saving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-lock"></i>
+            }
+
+            Cambiar contraseña
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+
+  <!-- =====================================================
+       MODAL - NUEVO / EDITAR USUARIO
+  ====================================================== -->
+
+  @if (modalUsuario()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarUsuario()"
+    >
+
+      <div
+        class="modal"
+        (click)="$event.stopPropagation()"
+      >
+
+        <div class="modal-header">
+
+          <div>
+            <span>USUARIOS</span>
+
+            <h2>
+              {{
+                usuarioEditando
+                  ? 'Editar usuario'
+                  : 'Nuevo usuario'
+              }}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            class="modal-close"
+            (click)="cerrarUsuario()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+          @if (error()) {
+            <div class="alert error compact">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ error() }}
+            </div>
+          }
+
+
+          <label class="field">
+            <span>Nombre completo</span>
+
+            <input
+              type="text"
+              [(ngModel)]="usuarioForm.nombre_completo"
+              placeholder="Nombre del usuario"
+            />
+          </label>
+
+
+          <label class="field">
+            <span>Nombre de usuario</span>
+
+            <div class="input-prefix">
+              <span>@</span>
+
+              <input
+                type="text"
+                [(ngModel)]="usuarioForm.username"
+                placeholder="usuario"
+              />
+            </div>
+          </label>
+
+
+          <label class="field">
+            <span>Rol</span>
+
+            <select
+              [(ngModel)]="usuarioForm.id_rol"
+            >
+              @for (
+                rol of roles();
+                track rol.id_rol
+              ) {
+                <option
+                  [ngValue]="rol.id_rol"
+                >
+                  {{ rol.nombre }}
+                </option>
+              }
+            </select>
+          </label>
+
+
+          @if (!usuarioEditando) {
+
+            <label class="field">
+              <span>Contraseña temporal</span>
+
+              <input
+                type="password"
+                [(ngModel)]="usuarioForm.password"
+                autocomplete="new-password"
+                placeholder="Mínimo 8 caracteres"
+              />
+
+              <small>
+                El usuario deberá cambiarla posteriormente.
+              </small>
+            </label>
+
+          }
+
+        </div>
+
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="saving()"
+            (click)="cerrarUsuario()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="saving()"
+            (click)="guardarUsuario()"
+          >
+            @if (saving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i
+                class="pi"
+                [class.pi-plus]="!usuarioEditando"
+                [class.pi-check]="usuarioEditando"
+              ></i>
+            }
+
+            {{
+              usuarioEditando
+                ? 'Guardar cambios'
+                : 'Crear usuario'
+            }}
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+
+  <!-- =====================================================
+       MODAL - RESTABLECER PASSWORD
+  ====================================================== -->
+
+  @if (modalResetPassword()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="cerrarResetPassword()"
+    >
+
+      <div
+        class="modal modal-small"
+        (click)="$event.stopPropagation()"
+      >
+
+        <div class="modal-header">
+
+          <div>
+            <span>SEGURIDAD</span>
+            <h2>Restablecer contraseña</h2>
+          </div>
+
+          <button
+            type="button"
+            class="modal-close"
+            (click)="cerrarResetPassword()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+          <p class="modal-description">
+            Nueva contraseña para
+            <strong>
+              {{ usuarioPassword?.nombre_completo }}
+            </strong>.
+          </p>
+
+
+          @if (error()) {
+            <div class="alert error compact">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ error() }}
+            </div>
+          }
+
+
+          <label class="field">
+            <span>Nueva contraseña</span>
+
+            <input
+              type="password"
+              [(ngModel)]="passwordTemporal"
+              autocomplete="new-password"
+              placeholder="Mínimo 8 caracteres"
+            />
+          </label>
+
+
+          <label class="field">
+            <span>Confirmar contraseña</span>
+
+            <input
+              type="password"
+              [(ngModel)]="passwordTemporalConfirmar"
+              autocomplete="new-password"
+              placeholder="Repite la contraseña"
+            />
+          </label>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="saving()"
+            (click)="cerrarResetPassword()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn primary"
+            [disabled]="saving()"
+            (click)="guardarResetPassword()"
+          >
+            @if (saving()) {
+              <i class="pi pi-spin pi-spinner"></i>
+            } @else {
+              <i class="pi pi-key"></i>
+            }
+
+            Restablecer
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  }
+
+</div>

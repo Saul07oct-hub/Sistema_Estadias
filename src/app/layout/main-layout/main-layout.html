@@ -81,7 +81,9 @@
           <span>Resúmenes</span>
         </a>
       }
+     
 
+      
 
       @if (
         has('pagos.registrar') ||
@@ -126,6 +128,8 @@
         </a>
       }
 
+      
+
       @if (has('exportaciones.crear')) {
         <a
           routerLink="/exportaciones"
@@ -136,8 +140,32 @@
           <span>Exportar reporte</span>
         </a>
       }
+      
+<span class="nav-title second">
+        CUENTA
+      </span>
 
+      <a
+        routerLink="/perfil"
+        routerLinkActive="active"
+        (click)="closeSidebar()"
+      >
+        <i class="pi pi-user"></i>
+        <span>Mi perfil</span>
+      </a>
+    
+    
     </nav>
+
+
+      <!-- =========================
+           PERFIL
+      ========================== -->
+
+    
+
+
+
 
 
     <div class="sidebar-bottom">

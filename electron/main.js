@@ -69,6 +69,24 @@ function verifyPassword(password, saltHex, storedHex, iterations) {
   );
 }
 
+function hashPassword(password, iterations = 310000) {
+  const salt = crypto.randomBytes(32);
+
+  const hash = crypto.pbkdf2Sync(
+    password,
+    salt,
+    iterations,
+    32,
+    'sha256'
+  );
+
+  return {
+    hash: hash.toString('hex'),
+    salt: salt.toString('hex'),
+    iterations
+  };
+}
+
 function permissionsForRole(idRol) {
   return db.prepare(`
     SELECT p.codigo
@@ -813,17 +831,6 @@ ipcMain.handle(
 
     /*
       ORDEN DE LA BITÁCORA:
-
-      44
-      43
-      42
-      41
-      ...
-      2
-      1
-
-      Cuando se registre el siguiente:
-      45 aparecerá hasta arriba.
     */
 
     const rows = db.prepare(`
@@ -1391,15 +1398,6 @@ ipcMain.handle(
    ADMINISTRACIÓN DE MATERIALES
 ========================================================= */
 
-/*
-  IMPORTANTE:
-  Estas acciones requieren el permiso catalogos.editar.
-
-  Los materiales NO se eliminan físicamente.
-  Solo cambian entre:
-    activo = 1  -> ACTIVO
-    activo = 0  -> INACTIVO
-*/
 
 /* =========================================================
    CREAR MATERIAL
@@ -2263,6 +2261,1524 @@ ipcMain.handle(
     return {
       ok: true
     };
+  }
+);
+/* =========================================================
+   ADMINISTRACIÓN DE OPERADORES
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:operador:create',
+  async (_e, token, input) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const nombre = String(
+        input?.nombre || ''
+      ).trim();
+
+      if (!nombre) {
+        return {
+          ok: false,
+          mensaje: 'El nombre del operador es obligatorio.'
+        };
+      }
+
+      const existente = db.prepare(`
+        SELECT id_operador
+        FROM operadores
+        WHERE lower(nombre) = lower(?)
+        LIMIT 1
+      `).get(nombre);
+
+      if (existente) {
+        return {
+          ok: false,
+          mensaje: 'Ya existe un operador con ese nombre.'
+        };
+      }
+
+      const info = db.prepare(`
+        INSERT INTO operadores(
+          nombre,
+          activo
+        )
+        VALUES(?, 1)
+      `).run(nombre);
+
+      const idOperador = Number(
+        info.lastInsertRowid
+      );
+
+      audit(
+        s.idUsuario,
+        'CREAR',
+        'operadores',
+        idOperador,
+        `Operador ${nombre}`
+      );
+
+      return {
+        ok: true,
+        id_operador: idOperador,
+        mensaje: 'Operador agregado correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error creando operador:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo crear el operador.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   EDITAR OPERADOR
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:operador:update',
+  async (_e, token, idOperador, input) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const id = Number(idOperador);
+
+      const nombre = String(
+        input?.nombre || ''
+      ).trim();
+
+      if (!id) {
+        return {
+          ok: false,
+          mensaje: 'Operador no válido.'
+        };
+      }
+
+      if (!nombre) {
+        return {
+          ok: false,
+          mensaje: 'El nombre del operador es obligatorio.'
+        };
+      }
+
+      const operador = db.prepare(`
+        SELECT *
+        FROM operadores
+        WHERE id_operador = ?
+      `).get(id);
+
+      if (!operador) {
+        return {
+          ok: false,
+          mensaje: 'El operador no existe.'
+        };
+      }
+
+      const duplicado = db.prepare(`
+        SELECT id_operador
+        FROM operadores
+        WHERE
+          lower(nombre) = lower(?)
+          AND id_operador <> ?
+        LIMIT 1
+      `).get(nombre, id);
+
+      if (duplicado) {
+        return {
+          ok: false,
+          mensaje: 'Ya existe otro operador con ese nombre.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE operadores
+        SET nombre = ?
+        WHERE id_operador = ?
+      `).run(nombre, id);
+
+      audit(
+        s.idUsuario,
+        'EDITAR',
+        'operadores',
+        id,
+        `Operador ${nombre}`
+      );
+
+      return {
+        ok: true,
+        mensaje: 'Operador actualizado correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error actualizando operador:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo actualizar el operador.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ACTIVAR / DESACTIVAR OPERADOR
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:operador:status',
+  async (_e, token, idOperador, activo) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const id = Number(idOperador);
+
+      const nuevoEstado =
+        Number(activo) === 1 ? 1 : 0;
+
+      const operador = db.prepare(`
+        SELECT *
+        FROM operadores
+        WHERE id_operador = ?
+      `).get(id);
+
+      if (!operador) {
+        return {
+          ok: false,
+          mensaje: 'El operador no existe.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE operadores
+        SET activo = ?
+        WHERE id_operador = ?
+      `).run(nuevoEstado, id);
+
+      audit(
+        s.idUsuario,
+        nuevoEstado === 1
+          ? 'ACTIVAR'
+          : 'DESACTIVAR',
+        'operadores',
+        id,
+        operador.nombre
+      );
+
+      return {
+        ok: true,
+        activo: nuevoEstado === 1,
+        mensaje:
+          nuevoEstado === 1
+            ? 'Operador activado correctamente.'
+            : 'Operador desactivado correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error cambiando estado del operador:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo cambiar el estado del operador.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMINISTRACIÓN DE UNIDADES
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:unidad:create',
+  async (_e, token, input) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const clave = String(
+        input?.clave || ''
+      )
+        .trim()
+        .toUpperCase();
+
+      if (!clave) {
+        return {
+          ok: false,
+          mensaje: 'La clave de la unidad es obligatoria.'
+        };
+      }
+
+      const existente = db.prepare(`
+        SELECT id_unidad
+        FROM unidades
+        WHERE upper(clave) = upper(?)
+        LIMIT 1
+      `).get(clave);
+
+      if (existente) {
+        return {
+          ok: false,
+          mensaje: 'Ya existe una unidad con esa clave.'
+        };
+      }
+
+      const info = db.prepare(`
+        INSERT INTO unidades(
+          clave,
+          activo
+        )
+        VALUES(?, 1)
+      `).run(clave);
+
+      const idUnidad = Number(
+        info.lastInsertRowid
+      );
+
+      audit(
+        s.idUsuario,
+        'CREAR',
+        'unidades',
+        idUnidad,
+        `Unidad ${clave}`
+      );
+
+      return {
+        ok: true,
+        id_unidad: idUnidad,
+        mensaje: 'Unidad agregada correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error creando unidad:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo crear la unidad.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   EDITAR UNIDAD
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:unidad:update',
+  async (_e, token, idUnidad, input) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const id = Number(idUnidad);
+
+      const clave = String(
+        input?.clave || ''
+      )
+        .trim()
+        .toUpperCase();
+
+      if (!id) {
+        return {
+          ok: false,
+          mensaje: 'Unidad no válida.'
+        };
+      }
+
+      if (!clave) {
+        return {
+          ok: false,
+          mensaje: 'La clave de la unidad es obligatoria.'
+        };
+      }
+
+      const unidad = db.prepare(`
+        SELECT *
+        FROM unidades
+        WHERE id_unidad = ?
+      `).get(id);
+
+      if (!unidad) {
+        return {
+          ok: false,
+          mensaje: 'La unidad no existe.'
+        };
+      }
+
+      const duplicada = db.prepare(`
+        SELECT id_unidad
+        FROM unidades
+        WHERE
+          upper(clave) = upper(?)
+          AND id_unidad <> ?
+        LIMIT 1
+      `).get(clave, id);
+
+      if (duplicada) {
+        return {
+          ok: false,
+          mensaje: 'Ya existe otra unidad con esa clave.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE unidades
+        SET clave = ?
+        WHERE id_unidad = ?
+      `).run(clave, id);
+
+      audit(
+        s.idUsuario,
+        'EDITAR',
+        'unidades',
+        id,
+        `Unidad ${clave}`
+      );
+
+      return {
+        ok: true,
+        mensaje: 'Unidad actualizada correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error actualizando unidad:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo actualizar la unidad.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ACTIVAR / DESACTIVAR UNIDAD
+========================================================= */
+
+ipcMain.handle(
+  'catalogos:unidad:status',
+  async (_e, token, idUnidad, activo) => {
+
+    const s = requireSession(
+      token,
+      'catalogos.editar'
+    );
+
+    try {
+      const id = Number(idUnidad);
+
+      const nuevoEstado =
+        Number(activo) === 1 ? 1 : 0;
+
+      const unidad = db.prepare(`
+        SELECT *
+        FROM unidades
+        WHERE id_unidad = ?
+      `).get(id);
+
+      if (!unidad) {
+        return {
+          ok: false,
+          mensaje: 'La unidad no existe.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE unidades
+        SET activo = ?
+        WHERE id_unidad = ?
+      `).run(nuevoEstado, id);
+
+      audit(
+        s.idUsuario,
+        nuevoEstado === 1
+          ? 'ACTIVAR'
+          : 'DESACTIVAR',
+        'unidades',
+        id,
+        unidad.clave
+      );
+
+      return {
+        ok: true,
+        activo: nuevoEstado === 1,
+        mensaje:
+          nuevoEstado === 1
+            ? 'Unidad activada correctamente.'
+            : 'Unidad desactivada correctamente.'
+      };
+
+    } catch (error) {
+      console.error(
+        'Error cambiando estado de la unidad:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo cambiar el estado de la unidad.'
+      };
+    }
+  }
+);
+/* =========================================================
+   PERFIL Y USUARIOS
+========================================================= */
+
+/* =========================================================
+   OBTENER MI PERFIL
+========================================================= */
+
+ipcMain.handle(
+  'perfil:get',
+  async (_e, token) => {
+
+    try {
+      const s = requireSession(token);
+
+      const usuario = db.prepare(`
+        SELECT
+          u.id_usuario,
+          u.username,
+          u.nombre_completo,
+          u.activo,
+          u.debe_cambiar_password,
+          u.ultimo_acceso,
+          u.creado_en,
+          u.actualizado_en,
+         
+
+          r.id_rol,
+          r.codigo AS rol_codigo,
+          r.nombre AS rol_nombre
+
+        FROM usuarios u
+
+        JOIN roles r
+          ON r.id_rol = u.id_rol
+
+        WHERE u.id_usuario = ?
+      `).get(s.idUsuario);
+
+      if (!usuario) {
+        return {
+          ok: false,
+          mensaje: 'Usuario no encontrado.'
+        };
+      }
+
+      return {
+        ok: true,
+        usuario
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error obteniendo perfil:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo obtener el perfil.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   EDITAR MI PERFIL
+========================================================= */
+
+ipcMain.handle(
+  'perfil:update',
+  async (_e, token, input) => {
+
+    try {
+      const s = requireSession(token);
+
+      const nombre = String(
+        input?.nombre_completo || ''
+      ).trim();
+
+      const username = String(
+        input?.username || ''
+      ).trim();
+
+      if (!nombre) {
+        return {
+          ok: false,
+          mensaje:
+            'El nombre es obligatorio.'
+        };
+      }
+
+      if (!username) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario es obligatorio.'
+        };
+      }
+
+      if (username.length < 3) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario debe tener al menos 3 caracteres.'
+        };
+      }
+
+      const duplicado = db.prepare(`
+        SELECT id_usuario
+        FROM usuarios
+
+        WHERE
+          lower(username) = lower(?)
+          AND id_usuario <> ?
+
+        LIMIT 1
+      `).get(
+        username,
+        s.idUsuario
+      );
+
+      if (duplicado) {
+        return {
+          ok: false,
+          mensaje:
+            'Ese nombre de usuario ya está registrado.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE usuarios
+
+        SET
+          nombre_completo = ?,
+          username = ?,
+          actualizado_en = datetime('now')
+
+        WHERE id_usuario = ?
+      `).run(
+        nombre,
+        username,
+        s.idUsuario
+      );
+
+      /*
+        También actualizamos el username
+        almacenado en la sesión actual.
+      */
+
+      const session =
+        sessions.get(String(token));
+
+      if (session) {
+        session.username = username;
+      }
+
+      audit(
+        s.idUsuario,
+        'EDITAR_PERFIL',
+        'usuarios',
+        s.idUsuario,
+        `Usuario ${username}`
+      );
+
+      return {
+        ok: true,
+        mensaje:
+          'Perfil actualizado correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error actualizando perfil:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo actualizar el perfil.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   CAMBIAR MI CONTRASEÑA
+========================================================= */
+
+ipcMain.handle(
+  'perfil:password',
+  async (_e, token, input) => {
+
+    try {
+      const s = requireSession(token);
+
+      const actual =
+        String(
+          input?.password_actual || ''
+        );
+
+      const nueva =
+        String(
+          input?.password_nueva || ''
+        );
+
+      if (!actual || !nueva) {
+        return {
+          ok: false,
+          mensaje:
+            'Ingresa la contraseña actual y la nueva.'
+        };
+      }
+
+      if (nueva.length < 8) {
+        return {
+          ok: false,
+          mensaje:
+            'La nueva contraseña debe tener al menos 8 caracteres.'
+        };
+      }
+
+      const usuario = db.prepare(`
+        SELECT *
+        FROM usuarios
+        WHERE id_usuario = ?
+      `).get(s.idUsuario);
+
+      if (!usuario) {
+        return {
+          ok: false,
+          mensaje:
+            'Usuario no encontrado.'
+        };
+      }
+
+      const correcta =
+        verifyPassword(
+          actual,
+          usuario.password_salt,
+          usuario.password_hash,
+          usuario.password_iteraciones
+        );
+
+      if (!correcta) {
+        return {
+          ok: false,
+          mensaje:
+            'La contraseña actual es incorrecta.'
+        };
+      }
+
+      const password =
+        hashPassword(nueva);
+
+      db.prepare(`
+        UPDATE usuarios
+
+        SET
+          password_hash = ?,
+          password_salt = ?,
+          password_algoritmo = 'PBKDF2-SHA256',
+          password_iteraciones = ?,
+          debe_cambiar_password = 0,
+          intentos_fallidos = 0,
+          bloqueado_hasta = NULL,
+          actualizado_en = datetime('now')
+
+        WHERE id_usuario = ?
+      `).run(
+        password.hash,
+        password.salt,
+        password.iterations,
+        s.idUsuario
+      );
+
+      audit(
+        s.idUsuario,
+        'CAMBIAR_PASSWORD',
+        'usuarios',
+        s.idUsuario,
+        'Cambio de contraseña propia'
+      );
+
+      return {
+        ok: true,
+        mensaje:
+          'Contraseña actualizada correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error cambiando contraseña:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo cambiar la contraseña.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMIN - LISTAR USUARIOS
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:list',
+  async (_e, token) => {
+
+    try {
+      requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const usuarios = db.prepare(`
+        SELECT
+          u.id_usuario,
+          u.username,
+          u.nombre_completo,
+          u.activo,
+          u.debe_cambiar_password,
+          u.intentos_fallidos,
+          u.bloqueado_hasta,
+          u.ultimo_acceso,
+          u.creado_en,
+          u.actualizado_en,
+          
+
+          r.id_rol,
+          r.codigo AS rol_codigo,
+          r.nombre AS rol_nombre
+
+        FROM usuarios u
+
+        JOIN roles r
+          ON r.id_rol = u.id_rol
+
+        ORDER BY
+          u.activo DESC,
+          u.nombre_completo ASC
+      `).all();
+
+      return {
+        ok: true,
+        usuarios
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error listando usuarios:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudieron obtener los usuarios.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMIN - CREAR USUARIO
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:create',
+  async (_e, token, input) => {
+
+    try {
+      const s = requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const nombre = String(
+        input?.nombre_completo || ''
+      ).trim();
+
+      const username = String(
+        input?.username || ''
+      ).trim();
+
+      const passwordPlano = String(
+        input?.password || ''
+      );
+
+      const idRol = Number(
+        input?.id_rol
+      );
+
+      if (!nombre) {
+        return {
+          ok: false,
+          mensaje:
+            'El nombre es obligatorio.'
+        };
+      }
+
+      if (!username) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario es obligatorio.'
+        };
+      }
+
+      if (username.length < 3) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario debe tener al menos 3 caracteres.'
+        };
+      }
+
+      if (passwordPlano.length < 8) {
+        return {
+          ok: false,
+          mensaje:
+            'La contraseña debe tener al menos 8 caracteres.'
+        };
+      }
+
+      if (!idRol) {
+        return {
+          ok: false,
+          mensaje:
+            'Selecciona un rol.'
+        };
+      }
+
+      const rol = db.prepare(`
+        SELECT *
+        FROM roles
+        WHERE id_rol = ?
+      `).get(idRol);
+
+      if (!rol) {
+        return {
+          ok: false,
+          mensaje:
+            'El rol seleccionado no existe.'
+        };
+      }
+
+      const existente = db.prepare(`
+        SELECT id_usuario
+        FROM usuarios
+        WHERE lower(username) = lower(?)
+        LIMIT 1
+      `).get(username);
+
+      if (existente) {
+        return {
+          ok: false,
+          mensaje:
+            'Ese nombre de usuario ya existe.'
+        };
+      }
+
+      const password =
+        hashPassword(passwordPlano);
+
+      const info = db.prepare(`
+        INSERT INTO usuarios(
+          id_rol,
+          username,
+          nombre_completo,
+          password_hash,
+          password_salt,
+          password_algoritmo,
+          password_iteraciones,
+          debe_cambiar_password,
+          activo,
+          intentos_fallidos,
+          creado_en,
+          actualizado_en
+        )
+
+        VALUES(
+          ?,?,?,?,?,
+          'PBKDF2-SHA256',
+          ?,
+          1,
+          1,
+          0,
+          datetime('now'),
+          datetime('now')
+        )
+      `).run(
+        idRol,
+        username,
+        nombre,
+        password.hash,
+        password.salt,
+        password.iterations
+      );
+
+      const idUsuario =
+        Number(info.lastInsertRowid);
+
+      audit(
+        s.idUsuario,
+        'CREAR',
+        'usuarios',
+        idUsuario,
+        `${nombre} (${username})`
+      );
+
+      return {
+        ok: true,
+        id_usuario: idUsuario,
+        mensaje:
+          'Usuario creado correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error creando usuario:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo crear el usuario.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMIN - EDITAR USUARIO
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:update',
+  async (_e, token, idUsuario, input) => {
+
+    try {
+      const s = requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const id =
+        Number(idUsuario);
+
+      const nombre =
+        String(
+          input?.nombre_completo || ''
+        ).trim();
+
+      const username =
+        String(
+          input?.username || ''
+        ).trim();
+
+      const idRol =
+        Number(input?.id_rol);
+
+      if (!id) {
+        return {
+          ok: false,
+          mensaje:
+            'Usuario no válido.'
+        };
+      }
+
+      if (!nombre || !username || !idRol) {
+        return {
+          ok: false,
+          mensaje:
+            'Completa todos los datos.'
+        };
+      }
+
+      const usuario = db.prepare(`
+        SELECT *
+        FROM usuarios
+        WHERE id_usuario = ?
+      `).get(id);
+
+      if (!usuario) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario no existe.'
+        };
+      }
+
+      const rol = db.prepare(`
+        SELECT *
+        FROM roles
+        WHERE id_rol = ?
+      `).get(idRol);
+
+      if (!rol) {
+        return {
+          ok: false,
+          mensaje:
+            'El rol no existe.'
+        };
+      }
+
+      const duplicado = db.prepare(`
+        SELECT id_usuario
+        FROM usuarios
+
+        WHERE
+          lower(username) = lower(?)
+          AND id_usuario <> ?
+
+        LIMIT 1
+      `).get(
+        username,
+        id
+      );
+
+      if (duplicado) {
+        return {
+          ok: false,
+          mensaje:
+            'Ese nombre de usuario ya está ocupado.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE usuarios
+
+        SET
+          nombre_completo = ?,
+          username = ?,
+          id_rol = ?,
+          actualizado_en = datetime('now')
+
+        WHERE id_usuario = ?
+      `).run(
+        nombre,
+        username,
+        idRol,
+        id
+      );
+
+      /*
+        Cerramos cualquier sesión del usuario
+        editado para que vuelva a cargar rol,
+        username y permisos.
+      */
+
+      for (
+        const [sessionToken, session]
+        of sessions.entries()
+      ) {
+        if (
+          session.idUsuario === id &&
+          sessionToken !== String(token)
+        ) {
+          sessions.delete(sessionToken);
+        }
+      }
+
+      /*
+        Si el administrador se editó a sí mismo,
+        actualizamos su sesión actual.
+      */
+
+      if (id === s.idUsuario) {
+
+        const current =
+          sessions.get(String(token));
+
+        if (current) {
+          current.username = username;
+          current.idRol = idRol;
+          current.permissions =
+            permissionsForRole(idRol);
+        }
+      }
+
+      audit(
+        s.idUsuario,
+        'EDITAR',
+        'usuarios',
+        id,
+        `${nombre} (${username})`
+      );
+
+      return {
+        ok: true,
+        mensaje:
+          'Usuario actualizado correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error actualizando usuario:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo actualizar el usuario.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMIN - ACTIVAR / DESACTIVAR USUARIO
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:status',
+  async (_e, token, idUsuario, activo) => {
+
+    try {
+      const s = requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const id =
+        Number(idUsuario);
+
+      const nuevoEstado =
+        Number(activo) === 1
+          ? 1
+          : 0;
+
+      if (id === s.idUsuario && nuevoEstado === 0) {
+        return {
+          ok: false,
+          mensaje:
+            'No puedes desactivar tu propia cuenta.'
+        };
+      }
+
+      const usuario = db.prepare(`
+        SELECT *
+        FROM usuarios
+        WHERE id_usuario = ?
+      `).get(id);
+
+      if (!usuario) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario no existe.'
+        };
+      }
+
+      db.prepare(`
+        UPDATE usuarios
+
+        SET
+          activo = ?,
+          intentos_fallidos = 0,
+          bloqueado_hasta = NULL,
+          actualizado_en = datetime('now')
+
+        WHERE id_usuario = ?
+      `).run(
+        nuevoEstado,
+        id
+      );
+
+      /*
+        Si se desactiva:
+        eliminamos inmediatamente todas
+        sus sesiones abiertas.
+      */
+
+      if (nuevoEstado === 0) {
+
+        for (
+          const [sessionToken, session]
+          of sessions.entries()
+        ) {
+          if (session.idUsuario === id) {
+            sessions.delete(sessionToken);
+          }
+        }
+      }
+
+      audit(
+        s.idUsuario,
+        nuevoEstado === 1
+          ? 'ACTIVAR'
+          : 'DESACTIVAR',
+        'usuarios',
+        id,
+        usuario.username
+      );
+
+      return {
+        ok: true,
+
+        activo:
+          nuevoEstado === 1,
+
+        mensaje:
+          nuevoEstado === 1
+            ? 'Usuario activado correctamente.'
+            : 'Usuario desactivado correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error cambiando estado del usuario:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo cambiar el estado.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ADMIN - RESTABLECER CONTRASEÑA
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:resetPassword',
+  async (_e, token, idUsuario, nuevaPassword) => {
+
+    try {
+      const s = requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const id =
+        Number(idUsuario);
+
+      const nueva =
+        String(
+          nuevaPassword || ''
+        );
+
+      if (nueva.length < 8) {
+        return {
+          ok: false,
+          mensaje:
+            'La contraseña debe tener al menos 8 caracteres.'
+        };
+      }
+
+      const usuario = db.prepare(`
+        SELECT *
+        FROM usuarios
+        WHERE id_usuario = ?
+      `).get(id);
+
+      if (!usuario) {
+        return {
+          ok: false,
+          mensaje:
+            'El usuario no existe.'
+        };
+      }
+
+      const password =
+        hashPassword(nueva);
+
+      db.prepare(`
+        UPDATE usuarios
+
+        SET
+          password_hash = ?,
+          password_salt = ?,
+          password_algoritmo = 'PBKDF2-SHA256',
+          password_iteraciones = ?,
+          debe_cambiar_password = 1,
+          intentos_fallidos = 0,
+          bloqueado_hasta = NULL,
+          actualizado_en = datetime('now')
+
+        WHERE id_usuario = ?
+      `).run(
+        password.hash,
+        password.salt,
+        password.iterations,
+        id
+      );
+
+      /*
+        Cerramos sesiones abiertas del usuario.
+      */
+
+      for (
+        const [sessionToken, session]
+        of sessions.entries()
+      ) {
+        if (session.idUsuario === id) {
+          sessions.delete(sessionToken);
+        }
+      }
+
+      audit(
+        s.idUsuario,
+        'RESET_PASSWORD',
+        'usuarios',
+        id,
+        `Contraseña restablecida para ${usuario.username}`
+      );
+
+      return {
+        ok: true,
+        mensaje:
+          'Contraseña restablecida correctamente.'
+      };
+
+    } catch (error) {
+
+      console.error(
+        'Error restableciendo contraseña:',
+        error
+      );
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudo restablecer la contraseña.'
+      };
+    }
+  }
+);
+
+
+/* =========================================================
+   ROLES DISPONIBLES
+========================================================= */
+
+ipcMain.handle(
+  'usuarios:roles',
+  async (_e, token) => {
+
+    try {
+      requireSession(
+        token,
+        'usuarios.gestionar'
+      );
+
+      const roles = db.prepare(`
+        SELECT
+          id_rol,
+          codigo,
+          nombre
+
+        FROM roles
+
+        ORDER BY id_rol
+      `).all();
+
+      return {
+        ok: true,
+        roles
+      };
+
+    } catch (error) {
+
+      return {
+        ok: false,
+        mensaje:
+          error.message ||
+          'No se pudieron obtener los roles.'
+      };
+    }
   }
 );
 

@@ -32,7 +32,105 @@ contextBridge.exposeInMainWorld(
         'auth:logout',
         token
       ),
+// =========================
+// PERFIL
+// =========================
 
+perfil: (
+  token
+) =>
+  ipcRenderer.invoke(
+    'perfil:get',
+    token
+  ),
+
+editarPerfil: (
+  token,
+  data
+) =>
+  ipcRenderer.invoke(
+    'perfil:update',
+    token,
+    data
+  ),
+
+cambiarPassword: (
+  token,
+  data
+) =>
+  ipcRenderer.invoke(
+    'perfil:password',
+    token,
+    data
+  ),
+
+
+// =========================
+// ADMINISTRACIÓN DE USUARIOS
+// =========================
+
+usuarios: (
+  token
+) =>
+  ipcRenderer.invoke(
+    'usuarios:list',
+    token
+  ),
+
+rolesUsuarios: (
+  token
+) =>
+  ipcRenderer.invoke(
+    'usuarios:roles',
+    token
+  ),
+
+crearUsuario: (
+  token,
+  data
+) =>
+  ipcRenderer.invoke(
+    'usuarios:create',
+    token,
+    data
+  ),
+
+editarUsuario: (
+  token,
+  idUsuario,
+  data
+) =>
+  ipcRenderer.invoke(
+    'usuarios:update',
+    token,
+    idUsuario,
+    data
+  ),
+
+cambiarEstadoUsuario: (
+  token,
+  idUsuario,
+  activo
+) =>
+  ipcRenderer.invoke(
+    'usuarios:status',
+    token,
+    idUsuario,
+    activo
+  ),
+
+restablecerPasswordUsuario: (
+  token,
+  idUsuario,
+  password
+) =>
+  ipcRenderer.invoke(
+    'usuarios:resetPassword',
+    token,
+    idUsuario,
+    password
+  ),
+  
 
     // =========================
     // DASHBOARD
